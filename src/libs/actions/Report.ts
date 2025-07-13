@@ -1906,6 +1906,41 @@ function deleteReportComment(reportID: string | undefined, reportAction: ReportA
         );
         optimisticReport.lastMentionedTime = latestMentionedReportAction?.created ?? null;
     }
+
+    // Find and hide any actionable mention whispers related to this deleted mention
+    const reportActionsForReport = allReportActions?.[reportID];
+    const relatedWhispers: ReportAction[] = [];
+    if (reportActionsForReport) {
+        const whisperCandidates = Object.values(reportActionsForReport).filter((action) => {
+            // Look for actionable mention whispers that were created around the same time as the deleted mention
+            // Since there's no direct link, we use temporal proximity as a heuristic
+            if (!ReportActionsUtils.isActionableMentionWhisper(action) && !ReportActionsUtils.isActionableReportMentionWhisper(action)) {
+                return false;
+            }
+
+            // Check if the whisper was created within a reasonable time window of the mention
+            const mentionTime = new Date(reportAction.created ?? '').getTime();
+            const whisperTime = new Date(action.created ?? '').getTime();
+            const timeDifferenceMs = Math.abs(whisperTime - mentionTime);
+            const maxTimeDifferenceMs = 1000; // 1 second window
+
+            return timeDifferenceMs <= maxTimeDifferenceMs;
+        });
+
+        relatedWhispers.push(...whisperCandidates);
+
+        // Hide the related whispers by setting them as resolved
+        relatedWhispers.forEach((whisper) => {
+            if (whisper.reportActionID) {
+                optimisticReportActions[whisper.reportActionID] = {
+                    pendingAction: CONST.RED_BRICK_ROAD_PENDING_ACTION.UPDATE,
+                    originalMessage: {
+                        resolution: CONST.REPORT.ACTIONABLE_MENTION_WHISPER_RESOLUTION.NOTHING,
+                    },
+                };
+            }
+        });
+    }
     // If the API call fails we must show the original message again, so we revert the message content back to how it was
     // and and remove the pendingAction so the strike-through clears
     const failureData: OnyxUpdate[] = [
@@ -1918,6 +1953,19 @@ function deleteReportComment(reportID: string | undefined, reportAction: ReportA
                     pendingAction: null,
                     previousMessage: null,
                 },
+                // Revert whisper changes on failure
+                ...relatedWhispers.reduce(
+                    (whisperReverts, whisper) => {
+                        if (whisper.reportActionID) {
+                            whisperReverts[whisper.reportActionID] = {
+                                pendingAction: null,
+                                originalMessage: whisper.originalMessage,
+                            };
+                        }
+                        return whisperReverts;
+                    },
+                    {} as Record<string, Partial<ReportAction>>,
+                ),
             },
         },
     ];
@@ -1931,6 +1979,18 @@ function deleteReportComment(reportID: string | undefined, reportAction: ReportA
                     pendingAction: null,
                     previousMessage: null,
                 },
+                // Clear pending actions for whispers on success
+                ...relatedWhispers.reduce(
+                    (whisperUpdates, whisper) => {
+                        if (whisper.reportActionID) {
+                            whisperUpdates[whisper.reportActionID] = {
+                                pendingAction: null,
+                            };
+                        }
+                        return whisperUpdates;
+                    },
+                    {} as Record<string, Partial<ReportAction>>,
+                ),
             },
         },
     ];
