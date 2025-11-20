@@ -1,10 +1,10 @@
 import React, {useMemo} from 'react';
 import {View} from 'react-native';
 import Button from '@components/Button';
-import * as Expensicons from '@components/Icon/Expensicons';
 import ScrollView from '@components/ScrollView';
 import SwipeInterceptPanResponder from '@components/SwipeInterceptPanResponder';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useThrottledButtonState from '@hooks/useThrottledButtonState';
@@ -20,6 +20,7 @@ function DebugJSON({data}: DebugJSONProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const [isThrottledButtonActive, setThrottledButtonInactive] = useThrottledButtonState();
+    const icons = useMemoizedLazyExpensifyIcons(['Copy'] as const);
 
     const json = useMemo(() => DebugUtils.stringifyJSON(data), [data]);
 
@@ -35,7 +36,7 @@ function DebugJSON({data}: DebugJSONProps) {
                     Clipboard.setString(json);
                     setThrottledButtonInactive();
                 }}
-                icon={Expensicons.Copy}
+                icon={icons.Copy}
             />
             <View
                 // eslint-disable-next-line react/jsx-props-no-spreading

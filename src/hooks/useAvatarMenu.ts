@@ -5,6 +5,7 @@ import Navigation from '@libs/Navigation/Navigation';
 import AttachmentModalContext from '@pages/media/AttachmentModalScreen/AttachmentModalContext';
 import ROUTES from '@src/ROUTES';
 import type {FileObject} from '@src/types/utils/Attachment';
+import {useMemoizedLazyExpensifyIcons} from './useLazyAsset';
 import useLocalize from './useLocalize';
 
 type OpenPicker = (options: {onPicked: (files: FileObject[]) => void}) => void;
@@ -32,6 +33,7 @@ type UseAvatarMenuParams = {
 function useAvatarMenu({shouldHideAvatarEdit, accountID, onImageRemoved, showAvatarCropModal, clearError, source, originalFileName}: UseAvatarMenuParams) {
     const {translate} = useLocalize();
     const attachmentContext = useContext(AttachmentModalContext);
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan', 'Eye'] as const);
 
     /**
      * Create menu items list for avatar menu
@@ -56,7 +58,7 @@ function useAvatarMenu({shouldHideAvatarEdit, accountID, onImageRemoved, showAva
             }
             if (!source) {
                 menuItems.push({
-                    icon: Expensicons.Trashcan,
+                    icon: icons.Trashcan,
                     text: translate('avatarWithImagePicker.removePhoto'),
                     value: null,
                     onSelected: () => {
@@ -70,7 +72,7 @@ function useAvatarMenu({shouldHideAvatarEdit, accountID, onImageRemoved, showAva
                 ...menuItems,
                 {
                     value: null,
-                    icon: Expensicons.Eye,
+                    icon: icons.Eye,
                     text: translate('avatarWithImagePicker.viewPhoto'),
                     onSelected: () => {
                         attachmentContext.setCurrentAttachment({source, originalFileName});
@@ -79,7 +81,7 @@ function useAvatarMenu({shouldHideAvatarEdit, accountID, onImageRemoved, showAva
                 },
             ];
         },
-        [translate, shouldHideAvatarEdit, source, showAvatarCropModal, clearError, onImageRemoved, attachmentContext, originalFileName, accountID],
+        [translate, shouldHideAvatarEdit, source, showAvatarCropModal, clearError, onImageRemoved, attachmentContext, originalFileName, accountID, icons.Trashcan, icons.Eye],
     );
 
     return {createMenuItems};

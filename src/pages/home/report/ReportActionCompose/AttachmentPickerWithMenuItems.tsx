@@ -8,12 +8,14 @@ import {DelegateNoAccessContext} from '@components/DelegateNoAccessModalProvider
 import {useFullScreenLoader} from '@components/FullScreenLoaderContext';
 import Icon from '@components/Icon';
 import * as Expensicons from '@components/Icon/Expensicons';
+import {Collapse, Expand} from '@components/Icon/Expensicons';
 import type {PopoverMenuItem} from '@components/PopoverMenu';
 import PopoverMenu from '@components/PopoverMenu';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
 import Tooltip from '@components/Tooltip/PopoverAnchorTooltip';
 import useCreateEmptyReportConfirmation from '@hooks/useCreateEmptyReportConfirmation';
 import useEnvironment from '@hooks/useEnvironment';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
@@ -139,6 +141,7 @@ function AttachmentPickerWithMenuItems({
     const theme = useTheme();
     const styles = useThemeStyles();
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
     const {windowHeight, windowWidth} = useWindowDimensions();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const {isDelegateAccessRestricted, showDelegateNoAccessModal} = useContext(DelegateNoAccessContext);
@@ -412,7 +415,7 @@ function AttachmentPickerWithMenuItems({
                                         >
                                             <Icon
                                                 fill={theme.icon}
-                                                src={Expensicons.Plus}
+                                                src={icons.Plus}
                                             />
                                         </PressableWithFeedback>
                                     </Tooltip>
@@ -439,7 +442,7 @@ function AttachmentPickerWithMenuItems({
                                                 >
                                                     <Icon
                                                         fill={theme.icon}
-                                                        src={Expensicons.Collapse}
+                                                        src={Collapse}
                                                     />
                                                 </PressableWithFeedback>
                                             </Tooltip>
@@ -463,7 +466,7 @@ function AttachmentPickerWithMenuItems({
                                                 >
                                                     <Icon
                                                         fill={theme.icon}
-                                                        src={Expensicons.Expand}
+                                                        src={Expand}
                                                     />
                                                 </PressableWithFeedback>
                                             </Tooltip>

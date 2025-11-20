@@ -306,7 +306,11 @@ type GetSectionsParams = {
  * If you are trying to access data about a specific search, you do NOT need to subscribe to the data (such as feeds) if it does not
  * affect the specific query you are looking for
  */
-function getSuggestedSearches(accountID: number = CONST.DEFAULT_NUMBER_ID, defaultFeedID?: string): Record<ValueOf<typeof CONST.SEARCH.SEARCH_KEYS>, SearchTypeMenuItem> {
+function getSuggestedSearches(
+    icons: {CheckCircle: IconAsset},
+    accountID: number = CONST.DEFAULT_NUMBER_ID,
+    defaultFeedID?: string,
+): Record<ValueOf<typeof CONST.SEARCH.SEARCH_KEYS>, SearchTypeMenuItem> {
     return {
         [CONST.SEARCH.SEARCH_KEYS.EXPENSES]: {
             key: CONST.SEARCH.SEARCH_KEYS.EXPENSES,
@@ -421,7 +425,7 @@ function getSuggestedSearches(accountID: number = CONST.DEFAULT_NUMBER_ID, defau
             key: CONST.SEARCH.SEARCH_KEYS.EXPORT,
             translationPath: 'common.export',
             type: CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT,
-            icon: Expensicons.CheckCircle,
+            icon: icons.CheckCircle,
             searchQuery: buildQueryStringFromFilterFormValues({
                 type: CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT,
                 action: CONST.SEARCH.ACTION_FILTERS.EXPORT,
@@ -1966,7 +1970,15 @@ function getExpenseTypeTranslationKey(expenseType: ValueOf<typeof CONST.SEARCH.T
 /**
  * Constructs and configures the overflow menu for search items, handling interactions such as renaming or deleting items.
  */
-function getOverflowMenu(itemName: string, hash: number, inputQuery: string, showDeleteModal: (hash: number) => void, isMobileMenu?: boolean, closeMenu?: () => void) {
+function getOverflowMenu(
+    itemName: string,
+    hash: number,
+    inputQuery: string,
+    showDeleteModal: (hash: number) => void,
+    icons: {Trashcan: IconAsset},
+    isMobileMenu?: boolean,
+    closeMenu?: () => void,
+) {
     return [
         {
             // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -1991,7 +2003,7 @@ function getOverflowMenu(itemName: string, hash: number, inputQuery: string, sho
                 }
                 showDeleteModal(hash);
             },
-            icon: Expensicons.Trashcan,
+            icon: icons.Trashcan,
             shouldShowRightIcon: false,
             shouldShowRightComponent: false,
             shouldCallAfterModalHide: true,
@@ -2020,11 +2032,12 @@ function createTypeMenuSections(
     defaultExpensifyCard: CardFeedForDisplay | undefined,
     isASAPSubmitBetaEnabled: boolean,
     hasViolations: boolean,
+    icons: {CheckCircle: IconAsset},
     createReportWithConfirmation?: (params: {policyID: string; policyName?: string; onSuccess: (reportID: string) => void; personalDetails?: OnyxTypes.PersonalDetails}) => void,
 ): SearchTypeMenuSection[] {
     const typeMenuSections: SearchTypeMenuSection[] = [];
 
-    const suggestedSearches = getSuggestedSearches(currentUserAccountID, defaultCardFeed?.id);
+    const suggestedSearches = getSuggestedSearches(icons, currentUserAccountID, defaultCardFeed?.id);
     const suggestedSearchesVisibility = getSuggestedSearchesVisibility(currentUserEmail, cardFeedsByPolicy, policies, defaultExpensifyCard);
 
     // Todo section

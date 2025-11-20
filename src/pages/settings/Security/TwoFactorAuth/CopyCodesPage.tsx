@@ -10,6 +10,7 @@ import PressableWithDelayToggle from '@components/Pressable/PressableWithDelayTo
 import ScrollView from '@components/ScrollView';
 import Section from '@components/Section';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -34,6 +35,7 @@ function CopyCodesPage({route}: TwoFactorAuthPageProps) {
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isExtraSmallScreenWidth, isSmallScreenWidth} = useResponsiveLayout();
     const [error, setError] = useState('');
+    const icons = useMemoizedLazyExpensifyIcons(['Copy'] as const);
 
     const [account, accountMetadata] = useOnyx(ONYXKEYS.ACCOUNT, {canBeMissing: true});
 
@@ -99,7 +101,7 @@ function CopyCodesPage({route}: TwoFactorAuthPageProps) {
                                         <PressableWithDelayToggle
                                             text={translate('twoFactorAuth.copy')}
                                             textChecked={translate('common.copied')}
-                                            icon={Expensicons.Copy}
+                                            icon={icons.Copy}
                                             inline={false}
                                             onPress={() => {
                                                 Clipboard.setString(account?.recoveryCodes ?? '');

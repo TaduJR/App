@@ -13,6 +13,7 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import ScrollView from '@components/ScrollView';
 import Section from '@components/Section';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -54,12 +55,13 @@ function AboutPage() {
     const popoverAnchor = useRef<View>(null);
     const waitForNavigate = useWaitForNavigation();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
+    const icons = useMemoizedLazyExpensifyIcons(['Link', 'Eye'] as const);
 
     const menuItems = useMemo(() => {
         const baseMenuItems: MenuItem[] = [
             {
                 translationKey: 'initialSettingsPage.aboutPage.appDownloadLinks',
-                icon: Expensicons.Link,
+                icon: icons.Link,
                 action: waitForNavigate(() => Navigation.navigate(ROUTES.SETTINGS_APP_DOWNLOAD_LINKS)),
             },
             {
@@ -69,7 +71,7 @@ function AboutPage() {
             },
             {
                 translationKey: 'initialSettingsPage.aboutPage.viewTheCode',
-                icon: Expensicons.Eye,
+                icon: icons.Eye,
                 iconRight: Expensicons.NewWindow,
                 action: () => {
                     openExternalLink(CONST.GITHUB_URL);
@@ -114,7 +116,7 @@ function AboutPage() {
             shouldBlockSelection: !!link,
             wrapperStyle: [styles.sectionMenuItemTopDescription],
         }));
-    }, [styles, translate, waitForNavigate]);
+    }, [styles, translate, waitForNavigate, icons.Link, icons.Eye]);
 
     const overlayContent = useCallback(
         () => (

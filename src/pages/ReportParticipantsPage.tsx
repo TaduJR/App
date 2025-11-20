@@ -11,13 +11,14 @@ import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import type {DropdownOption, WorkspaceMemberBulkActionType} from '@components/ButtonWithDropdownMenu/types';
 import ConfirmModal from '@components/ConfirmModal';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
-import {FallbackAvatar, MakeAdmin, Plus, RemoveMembers, User} from '@components/Icon/Expensicons';
+import {FallbackAvatar, MakeAdmin, RemoveMembers, User} from '@components/Icon/Expensicons';
 import ScreenWrapper from '@components/ScreenWrapper';
 import SelectionListWithModal from '@components/SelectionListWithModal';
 import TableListItem from '@components/SelectionListWithSections/TableListItem';
 import type {ListItem, SelectionListHandle} from '@components/SelectionListWithSections/types';
 import Text from '@components/Text';
 import useFilteredSelection from '@hooks/useFilteredSelection';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useNetwork from '@hooks/useNetwork';
@@ -66,6 +67,7 @@ function ReportParticipantsPage({report, route}: ReportParticipantsPageProps) {
     const {translate, formatPhoneNumber, localeCompare} = useLocalize();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
 
     // We need to use isSmallScreenWidth instead of shouldUseNarrowLayout to use the selection mode only on small screens
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
@@ -358,14 +360,14 @@ function ReportParticipantsPage({report, route}: ReportParticipantsPageProps) {
                         success
                         onPress={inviteUser}
                         text={translate('workspace.invite.member')}
-                        icon={Plus}
+                        icon={icons.Plus}
                         innerStyles={[shouldUseNarrowLayout && styles.alignItemsCenter]}
                         style={[shouldUseNarrowLayout && styles.flexGrow1]}
                     />
                 )}
             </View>
         );
-    }, [bulkActionsButtonOptions, inviteUser, isSmallScreenWidth, selectedMembers, styles, translate, isGroupChat, canSelectMultiple, shouldUseNarrowLayout]);
+    }, [bulkActionsButtonOptions, inviteUser, isSmallScreenWidth, selectedMembers, styles, translate, isGroupChat, canSelectMultiple, shouldUseNarrowLayout, icons.Plus]);
 
     /** Opens the member details page */
     const openMemberDetails = useCallback(

@@ -8,6 +8,7 @@ import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails'
 import useDeleteTransactions from '@hooks/useDeleteTransactions';
 import useDuplicateTransactionsAndViolations from '@hooks/useDuplicateTransactionsAndViolations';
 import useGetIOUReportFromReportAction from '@hooks/useGetIOUReportFromReportAction';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLoadingBarVisibility from '@hooks/useLoadingBarVisibility';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
@@ -128,6 +129,7 @@ function MoneyRequestHeader({report, parentReportAction, policy, onBackButtonPre
     const shouldDisplayTransactionNavigation = !!(reportID && isReportInRHP);
     const isParentReportArchived = useReportIsArchived(report?.parentReportID);
     const {iouReport, chatReport: chatIOUReport, isChatIOUReportArchived} = useGetIOUReportFromReportAction(parentReportAction);
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Trashcan'] as const);
 
     const hasPendingRTERViolation = hasPendingRTERViolationTransactionUtils(transactionViolations);
 
@@ -360,7 +362,7 @@ function MoneyRequestHeader({report, parentReportAction, policy, onBackButtonPre
         },
         [CONST.REPORT.TRANSACTION_SECONDARY_ACTIONS.DELETE]: {
             text: translate('common.delete'),
-            icon: Expensicons.Trashcan,
+            icon: lazyIcons.Trashcan,
             value: CONST.REPORT.SECONDARY_ACTIONS.DELETE,
             onSelected: () => {
                 setIsDeleteModalVisible(true);

@@ -8,6 +8,7 @@ import type {LocaleContextProps} from '@components/LocaleContextProvider';
 import getBackgroundColor from '@components/TabSelector/getBackground';
 import getOpacity from '@components/TabSelector/getOpacity';
 import TabSelectorItem from '@components/TabSelector/TabSelectorItem';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -19,12 +20,12 @@ type IconAndTitle = {
     title: string;
 };
 
-function getIconAndTitle(route: string, translate: LocaleContextProps['translate']): IconAndTitle {
+function getIconAndTitle(route: string, translate: LocaleContextProps['translate'], icons: {Eye: IconAsset}): IconAndTitle {
     switch (route) {
         case CONST.DEBUG.DETAILS:
             return {icon: Expensicons.Info, title: translate('debug.details')};
         case CONST.DEBUG.JSON:
-            return {icon: Expensicons.Eye, title: translate('debug.JSON')};
+            return {icon: icons.Eye, title: translate('debug.JSON')};
         case CONST.DEBUG.REPORT_ACTIONS:
             return {icon: Expensicons.Document, title: translate('debug.reportActions')};
         case CONST.DEBUG.REPORT_ACTION_PREVIEW:
@@ -55,6 +56,7 @@ function DebugTabNavigator({id, routes}: DebugTabNavigatorProps) {
     const theme = useTheme();
     const navigation = useNavigation<NavigationProp<Record<string, unknown>>>();
     const {translate} = useLocalize();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Eye'] as const);
     const [currentTab, setCurrentTab] = useState(routes.at(0)?.name);
     const defaultAffectedAnimatedTabs = useMemo(() => Array.from({length: routes.length}, (v, i) => i), [routes.length]);
     const [affectedAnimatedTabs, setAffectedAnimatedTabs] = useState(defaultAffectedAnimatedTabs);
@@ -96,7 +98,7 @@ function DebugTabNavigator({id, routes}: DebugTabNavigatorProps) {
                         position: undefined,
                         isActive,
                     });
-                    const {icon, title} = getIconAndTitle(route.name, translate);
+                    const {icon, title} = getIconAndTitle(route.name, translate, {Eye: lazyIcons.Eye});
 
                     const onPress = () => {
                         navigation.navigate(routeData.name, {...routeData?.params, screen: route.name});

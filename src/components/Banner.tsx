@@ -1,6 +1,7 @@
 import React, {memo} from 'react';
 import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
 import {View} from 'react-native';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
@@ -69,6 +70,7 @@ function Banner({
     shouldShowCloseButton = false,
     shouldShowButton = false,
 }: BannerProps) {
+    const icons = useMemoizedLazyExpensifyIcons(['Close'] as const);
     const theme = useTheme();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
@@ -131,7 +133,7 @@ function Banner({
                                     accessibilityLabel={translate('common.close')}
                                 >
                                     <Icon
-                                        src={Expensicons.Close}
+                                        src={icons.Close}
                                         fill={theme.icon}
                                     />
                                 </PressableWithFeedback>

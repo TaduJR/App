@@ -2,6 +2,7 @@ import React, {useCallback, useContext, useMemo, useRef, useState} from 'react';
 import * as Expensicons from '@components/Icon/Expensicons';
 import type {PopoverMenuItem} from '@components/PopoverMenu';
 import type {VideoWithOnFullScreenUpdate} from '@components/VideoPlayer/types';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import addEncryptedAuthTokenToURL from '@libs/addEncryptedAuthTokenToURL';
@@ -14,6 +15,7 @@ const Context = React.createContext<VideoPopoverMenuContext | null>(null);
 
 function VideoPopoverMenuContextProvider({children}: ChildrenProps) {
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Checkmark'] as const);
     const [source, setSource] = useState('');
     const [currentPlaybackSpeed, setCurrentPlaybackSpeed] = useState<PlaybackSpeed>(CONST.VIDEO_PLAYER.PLAYBACK_SPEEDS[3]);
     const {isOffline} = useNetwork();
@@ -53,7 +55,7 @@ function VideoPopoverMenuContextProvider({children}: ChildrenProps) {
             icon: Expensicons.Meter,
             text: translate('videoPlayer.playbackSpeed'),
             subMenuItems: CONST.VIDEO_PLAYER.PLAYBACK_SPEEDS.map((speed) => ({
-                icon: currentPlaybackSpeed === speed ? Expensicons.Checkmark : undefined,
+                icon: currentPlaybackSpeed === speed ? icons.Checkmark : undefined,
                 text: speed === 1 ? translate('videoPlayer.normal') : speed.toString(),
                 onSelected: () => {
                     updatePlaybackSpeed(speed);
@@ -63,7 +65,7 @@ function VideoPopoverMenuContextProvider({children}: ChildrenProps) {
             })),
         });
         return items;
-    }, [currentPlaybackSpeed, downloadAttachment, translate, updatePlaybackSpeed, isOffline, isLocalFile]);
+    }, [currentPlaybackSpeed, downloadAttachment, translate, updatePlaybackSpeed, isOffline, isLocalFile, icons.Checkmark]);
 
     const contextValue = useMemo(
         () => ({menuItems, videoPopoverMenuPlayerRef, currentPlaybackSpeed, updatePlaybackSpeed, setCurrentPlaybackSpeed, setSource}),

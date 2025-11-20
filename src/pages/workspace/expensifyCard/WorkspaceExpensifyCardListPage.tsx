@@ -7,7 +7,7 @@ import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import {DelegateNoAccessContext} from '@components/DelegateNoAccessModalProvider';
 import FeedSelector from '@components/FeedSelector';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
-import {Gear, Plus} from '@components/Icon/Expensicons';
+import {Gear} from '@components/Icon/Expensicons';
 import {LockedAccountContext} from '@components/LockedAccountModalProvider';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import {PressableWithFeedback} from '@components/Pressable';
@@ -21,7 +21,7 @@ import useEmptyViewHeaderHeight from '@hooks/useEmptyViewHeaderHeight';
 import useExpensifyCardFeeds from '@hooks/useExpensifyCardFeeds';
 import useExpensifyCardUkEuSupported from '@hooks/useExpensifyCardUkEuSupported';
 import useHandleBackButton from '@hooks/useHandleBackButton';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePolicy from '@hooks/usePolicy';
@@ -63,6 +63,7 @@ function WorkspaceExpensifyCardListPage({route, cardsList, fundID}: WorkspaceExp
     const {translate, localeCompare} = useLocalize();
     const styles = useThemeStyles();
     const illustrations = useMemoizedLazyIllustrations(['HandCard', 'ExpensifyCardImage'] as const);
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
 
     const policyID = route.params.policyID;
     const policy = usePolicy(policyID);
@@ -129,7 +130,7 @@ function WorkspaceExpensifyCardListPage({route, cardsList, fundID}: WorkspaceExp
                 <Button
                     success
                     onPress={handleIssueCardPress}
-                    icon={Plus}
+                    icon={icons.Plus}
                     text={translate('workspace.expensifyCard.issueCard')}
                     style={shouldChangeLayout && styles.flex1}
                 />

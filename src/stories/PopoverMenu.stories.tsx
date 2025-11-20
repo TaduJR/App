@@ -1,12 +1,15 @@
 import type {Meta, StoryFn} from '@storybook/react';
 import React from 'react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-import * as Expensicons from '@components/Icon/Expensicons';
+import {Bank, CreditCard} from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import PopoverMenu from '@components/PopoverMenu';
 import type {PopoverMenuProps} from '@components/PopoverMenu';
 // eslint-disable-next-line no-restricted-imports
 import themeColors from '@styles/theme/themes/dark';
+import type IconAsset from '@src/types/utils/IconAsset';
+
+const mockPlus = 1 as unknown as IconAsset;
 
 type PopoverMenuStory = StoryFn<typeof PopoverMenu>;
 
@@ -27,7 +30,7 @@ function Template(props: PopoverMenuProps) {
         <>
             <MenuItem
                 title="Add payment Methods"
-                icon={Expensicons.Plus}
+                icon={mockPlus}
                 onPress={toggleVisibility}
                 wrapperStyle={isVisible ? [{backgroundColor: themeColors.border}] : []}
             />
@@ -41,12 +44,12 @@ function Template(props: PopoverMenuProps) {
                     menuItems={[
                         {
                             text: 'Bank account',
-                            icon: Expensicons.Bank,
+                            icon: Bank,
                             onSelected: toggleVisibility,
                         },
                         {
                             text: 'Debit card',
-                            icon: Expensicons.CreditCard,
+                            icon: CreditCard,
                             onSelected: toggleVisibility,
                         },
                     ]}

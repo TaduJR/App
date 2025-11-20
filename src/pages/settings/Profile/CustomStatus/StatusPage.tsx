@@ -16,6 +16,7 @@ import Text from '@components/Text';
 import TextInput from '@components/TextInput';
 import useAutoFocusInput from '@hooks/useAutoFocusInput';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -47,6 +48,7 @@ function StatusPage() {
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const formRef = useRef<FormRef>(null);
     const [brickRoadIndicator, setBrickRoadIndicator] = useState<ValueOf<typeof CONST.BRICK_ROAD_INDICATOR_STATUS>>();
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan'] as const);
 
     const [vacationDelegate] = useOnyx(ONYXKEYS.NVP_PRIVATE_VACATION_DELEGATE, {canBeMissing: true});
     const hasVacationDelegate = !!vacationDelegate?.delegate;
@@ -250,7 +252,7 @@ function StatusPage() {
                     {(!!currentUserEmojiCode || !!currentUserStatusText) && (
                         <MenuItem
                             title={translate('statusPage.clearStatus')}
-                            icon={Expensicons.Trashcan}
+                            icon={icons.Trashcan}
                             onPress={clearStatus}
                         />
                     )}

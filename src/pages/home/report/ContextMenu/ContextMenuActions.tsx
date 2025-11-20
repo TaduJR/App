@@ -143,6 +143,14 @@ import KeyboardUtils from '@src/utils/keyboard';
 import type {ContextMenuAnchor} from './ReportActionContextMenu';
 import {hideContextMenu, showDeleteModal} from './ReportActionContextMenu';
 
+type ContextMenuIcons = {
+    Checkmark: IconAsset;
+    Copy: IconAsset;
+    LinkCopy: IconAsset;
+    Pin: IconAsset;
+    Trashcan: IconAsset;
+};
+
 /** Gets the HTML version of the message in an action */
 function getActionHtml(reportAction: OnyxInputOrEntry<ReportAction>): string {
     const message = Array.isArray(reportAction?.message) ? (reportAction?.message?.at(-1) ?? null) : (reportAction?.message ?? null);
@@ -244,7 +252,7 @@ type ContextMenuAction = (ContextMenuActionWithContent | ContextMenuActionWithIc
 };
 
 // A list of all the context actions in this menu.
-const ContextMenuActions: ContextMenuAction[] = [
+const getContextMenuActions = (icons: ContextMenuIcons): ContextMenuAction[] => [
     {
         isAnonymousAction: false,
         shouldShow: ({type, reportAction}) => type === CONST.CONTEXT_MENU_TYPES.REPORT_ACTION && !!reportAction && 'message' in reportAction && !isMessageDeleted(reportAction),
@@ -327,7 +335,7 @@ const ContextMenuActions: ContextMenuAction[] = [
         isAnonymousAction: false,
         textTranslateKey: 'reportActionContextMenu.markAsUnread',
         icon: Expensicons.ChatBubbleUnread,
-        successIcon: Expensicons.Checkmark,
+        successIcon: icons.Checkmark,
         shouldShow: ({type, isUnreadChat}) => type === CONST.CONTEXT_MENU_TYPES.REPORT_ACTION || (type === CONST.CONTEXT_MENU_TYPES.REPORT && !isUnreadChat),
         onPress: (closePopover, {reportAction, reportID}) => {
             markCommentAsUnread(reportID, reportAction);
@@ -341,7 +349,7 @@ const ContextMenuActions: ContextMenuAction[] = [
         isAnonymousAction: false,
         textTranslateKey: 'reportActionContextMenu.markAsRead',
         icon: Expensicons.Mail,
-        successIcon: Expensicons.Checkmark,
+        successIcon: icons.Checkmark,
         shouldShow: ({type, isUnreadChat}) => type === CONST.CONTEXT_MENU_TYPES.REPORT && isUnreadChat,
         onPress: (closePopover, {reportID}) => {
             readNewestAction(reportID, true);
@@ -474,9 +482,9 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: true,
         textTranslateKey: 'reportActionContextMenu.copyURLToClipboard',
-        icon: Expensicons.Copy,
+        icon: icons.Copy,
         successTextTranslateKey: 'reportActionContextMenu.copied',
-        successIcon: Expensicons.Checkmark,
+        successIcon: icons.Checkmark,
         shouldShow: ({type}) => type === CONST.CONTEXT_MENU_TYPES.LINK,
         onPress: (closePopover, {selection}) => {
             Clipboard.setString(selection);
@@ -487,9 +495,9 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: true,
         textTranslateKey: 'common.copyToClipboard',
-        icon: Expensicons.Copy,
+        icon: icons.Copy,
         successTextTranslateKey: 'reportActionContextMenu.copied',
-        successIcon: Expensicons.Checkmark,
+        successIcon: icons.Checkmark,
         shouldShow: ({type}) => type === CONST.CONTEXT_MENU_TYPES.TEXT,
         onPress: (closePopover, {selection}) => {
             Clipboard.setString(selection);
@@ -500,9 +508,9 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: true,
         textTranslateKey: 'reportActionContextMenu.copyEmailToClipboard',
-        icon: Expensicons.Copy,
+        icon: icons.Copy,
         successTextTranslateKey: 'reportActionContextMenu.copied',
-        successIcon: Expensicons.Checkmark,
+        successIcon: icons.Checkmark,
         shouldShow: ({type}) => type === CONST.CONTEXT_MENU_TYPES.EMAIL,
         onPress: (closePopover, {selection}) => {
             Clipboard.setString(EmailUtils.trimMailTo(selection));
@@ -513,9 +521,9 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: true,
         textTranslateKey: 'reportActionContextMenu.copyMessage',
-        icon: Expensicons.Copy,
+        icon: icons.Copy,
         successTextTranslateKey: 'reportActionContextMenu.copied',
-        successIcon: Expensicons.Checkmark,
+        successIcon: icons.Checkmark,
         shouldShow: ({type, reportAction}) =>
             type === CONST.CONTEXT_MENU_TYPES.REPORT_ACTION && !isReportActionAttachment(reportAction) && !isMessageDeleted(reportAction) && !isTripPreview(reportAction),
 
@@ -772,8 +780,8 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: true,
         textTranslateKey: 'reportActionContextMenu.copyLink',
-        icon: Expensicons.LinkCopy,
-        successIcon: Expensicons.Checkmark,
+        icon: icons.LinkCopy,
+        successIcon: icons.Checkmark,
         successTextTranslateKey: 'reportActionContextMenu.copied',
         shouldShow: ({type, reportAction, menuTarget}) => {
             const isAttachment = isReportActionAttachment(reportAction);
@@ -795,7 +803,7 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: false,
         textTranslateKey: 'common.pin',
-        icon: Expensicons.Pin,
+        icon: icons.Pin,
         shouldShow: ({type, isPinnedChat}) => type === CONST.CONTEXT_MENU_TYPES.REPORT && !isPinnedChat,
         onPress: (closePopover, {reportID}) => {
             togglePinnedState(reportID, false);
@@ -808,7 +816,7 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: false,
         textTranslateKey: 'common.unPin',
-        icon: Expensicons.Pin,
+        icon: icons.Pin,
         shouldShow: ({type, isPinnedChat}) => type === CONST.CONTEXT_MENU_TYPES.REPORT && isPinnedChat,
         onPress: (closePopover, {reportID}) => {
             togglePinnedState(reportID, true);
@@ -878,9 +886,9 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: true,
         textTranslateKey: 'reportActionContextMenu.copyOnyxData',
-        icon: Expensicons.Copy,
+        icon: icons.Copy,
         successTextTranslateKey: 'reportActionContextMenu.copied',
-        successIcon: Expensicons.Checkmark,
+        successIcon: icons.Checkmark,
         shouldShow: ({type, isProduction}) => type === CONST.CONTEXT_MENU_TYPES.REPORT && !isProduction,
         onPress: (closePopover, {report}) => {
             Clipboard.setString(JSON.stringify(report, null, 4));
@@ -906,7 +914,7 @@ const ContextMenuActions: ContextMenuAction[] = [
     {
         isAnonymousAction: false,
         textTranslateKey: 'common.delete',
-        icon: Expensicons.Trashcan,
+        icon: icons.Trashcan,
         shouldShow: ({type, reportAction, isArchivedRoom, isChronosReport, reportID: reportIDParam, moneyRequestAction, iouTransaction, transactions, childReportActions}) => {
             // Until deleting parent threads is supported in FE, we will prevent the user from deleting a thread parent
             let reportID = reportIDParam;
@@ -960,10 +968,9 @@ const restrictedReadOnlyActions = new Set<TranslationPaths>([
     'common.delete',
 ]);
 
-const RestrictedReadOnlyContextMenuActions: ContextMenuAction[] = ContextMenuActions.filter(
-    (action) => 'textTranslateKey' in action && restrictedReadOnlyActions.has(action.textTranslateKey),
-);
+const getRestrictedReadOnlyContextMenuActions = (icons: ContextMenuIcons): ContextMenuAction[] =>
+    getContextMenuActions(icons).filter((action) => 'textTranslateKey' in action && restrictedReadOnlyActions.has(action.textTranslateKey));
 
-export {RestrictedReadOnlyContextMenuActions};
-export default ContextMenuActions;
-export type {ContextMenuActionPayload, ContextMenuAction};
+export {getContextMenuActions, getRestrictedReadOnlyContextMenuActions};
+export default getContextMenuActions;
+export type {ContextMenuActionPayload, ContextMenuAction, ContextMenuIcons};

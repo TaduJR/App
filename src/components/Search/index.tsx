@@ -15,6 +15,7 @@ import {WideRHPContext} from '@components/WideRHPContextProvider';
 import useArchivedReportsIdSet from '@hooks/useArchivedReportsIdSet';
 import useCardFeedsForDisplay from '@hooks/useCardFeedsForDisplay';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -224,6 +225,7 @@ function Search({
     const prevIsOffline = usePrevious(isOffline);
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const styles = useThemeStyles();
+    const icons = useMemoizedLazyExpensifyIcons(['CheckCircle'] as const);
     const [isDEWModalVisible, setIsDEWModalVisible] = useState(false);
 
     const handleDEWModalOpen = useCallback(() => {
@@ -309,7 +311,7 @@ function Search({
     });
 
     const {defaultCardFeed} = useCardFeedsForDisplay();
-    const suggestedSearches = useMemo(() => getSuggestedSearches(accountID, defaultCardFeed?.id), [defaultCardFeed?.id, accountID]);
+    const suggestedSearches = useMemo(() => getSuggestedSearches(icons, accountID, defaultCardFeed?.id), [icons, accountID, defaultCardFeed?.id]);
 
     const searchKey = useMemo(() => Object.values(suggestedSearches).find((search) => search.similarSearchHash === similarSearchHash)?.key, [suggestedSearches, similarSearchHash]);
 

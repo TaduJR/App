@@ -13,6 +13,7 @@ import useArrowKeyFocusManager from '@hooks/useArrowKeyFocusManager';
 import useEnvironment from '@hooks/useEnvironment';
 import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromReportAction';
 import useKeyboardShortcut from '@hooks/useKeyboardShortcut';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -41,7 +42,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {OriginalMessageIOU, ReportAction} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import type {ContextMenuAction, ContextMenuActionPayload} from './ContextMenuActions';
-import ContextMenuActions from './ContextMenuActions';
+import buildContextMenuActions from './ContextMenuActions';
 import type {ContextMenuAnchor, ContextMenuType} from './ReportActionContextMenu';
 import {hideContextMenu, showContextMenu} from './ReportActionContextMenu';
 
@@ -139,6 +140,18 @@ function BaseReportActionContextMenu({
     const wrapperStyle = StyleUtils.getReportActionContextMenuStyles(isMini, shouldUseNarrowLayout);
     const {isOffline} = useNetwork();
     const {isProduction} = useEnvironment();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Checkmark', 'Copy', 'LinkCopy', 'Pin', 'Trashcan'] as const);
+    const ContextMenuActions = useMemo(
+        () =>
+            buildContextMenuActions({
+                Checkmark: lazyIcons.Checkmark,
+                Copy: lazyIcons.Copy,
+                LinkCopy: lazyIcons.LinkCopy,
+                Pin: lazyIcons.Pin,
+                Trashcan: lazyIcons.Trashcan,
+            }),
+        [lazyIcons.Checkmark, lazyIcons.Copy, lazyIcons.LinkCopy, lazyIcons.Pin, lazyIcons.Trashcan],
+    );
     const threeDotRef = useRef<View>(null);
     const [betas] = useOnyx(ONYXKEYS.BETAS, {canBeMissing: true});
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${originalReportID}`, {

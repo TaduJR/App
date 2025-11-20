@@ -14,6 +14,7 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import ScrollView from '@components/ScrollView';
 import Text from '@components/Text';
 import useEnvironment from '@hooks/useEnvironment';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -37,6 +38,7 @@ function WorkspaceOverviewSharePage({policy}: WithPolicyProps) {
     const qrCodeRef = useRef<QRShareWithDownloadHandle>(null);
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const session = useSession();
+    const icons = useMemoizedLazyExpensifyIcons(['Copy', 'Checkmark'] as const);
 
     const policyName = policy?.name ?? '';
     const policyID = policy?.id;
@@ -107,8 +109,8 @@ function WorkspaceOverviewSharePage({policy}: WithPolicyProps) {
                             <ContextMenuItem
                                 isAnonymousAction
                                 text={translate('qrCodes.copy')}
-                                icon={Expensicons.Copy}
-                                successIcon={Expensicons.Checkmark}
+                                icon={icons.Copy}
+                                successIcon={icons.Checkmark}
                                 successText={translate('qrCodes.copied')}
                                 onPress={() => Clipboard.setString(url)}
                                 shouldLimitWidth={false}

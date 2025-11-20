@@ -53,13 +53,13 @@ function WorkspaceCompanyCardFeedSelectorPage({route}: WorkspaceCompanyCardFeedS
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const illustrations = useThemeIllustrations();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
     const [cardFeeds] = useCardFeeds(policyID);
     const [allFeedsCards] = useOnyx(`${ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST}`, {canBeMissing: false});
     const [lastSelectedFeed] = useOnyx(`${ONYXKEYS.COLLECTION.LAST_SELECTED_FEED}${policyID}`, {canBeMissing: true});
     const selectedFeed = getSelectedFeed(lastSelectedFeed, cardFeeds);
     const companyFeeds = getCompanyFeeds(cardFeeds);
     const {isBlockedToAddNewFeeds} = useIsBlockedToAddFeed(policyID);
-    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
 
     const feeds: CardFeedListItem[] = Object.entries(companyFeeds).map(([key, feedSettings]) => {
         const feed = key as CompanyCardFeed;

@@ -17,6 +17,7 @@ import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeed
 import ScreenWrapper from '@components/ScreenWrapper';
 import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -57,6 +58,7 @@ type AvatarCropModalProps = {
 
 // This component can't be written using class since reanimated API uses hooks.
 function AvatarCropModal({imageUri = '', imageName = '', imageType = '', onClose, onSave, isVisible, maskImage, buttonLabel}: AvatarCropModalProps) {
+    const icons = useMemoizedLazyExpensifyIcons(['Rotate'] as const);
     const theme = useTheme();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
@@ -422,7 +424,7 @@ function AvatarCropModal({imageUri = '', imageName = '', imageType = '', onClose
                                     >
                                         <View>
                                             <Button
-                                                icon={Expensicons.Rotate}
+                                                icon={icons.Rotate}
                                                 iconFill={theme.icon}
                                                 onPress={rotateImage}
                                             />

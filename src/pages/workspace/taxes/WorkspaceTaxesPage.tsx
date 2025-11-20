@@ -6,7 +6,7 @@ import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import type {DropdownOption, WorkspaceTaxRatesBulkActionType} from '@components/ButtonWithDropdownMenu/types';
 import ConfirmModal from '@components/ConfirmModal';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
-import * as Expensicons from '@components/Icon/Expensicons';
+import {Gear} from '@components/Icon/Expensicons';
 import ImportedFromAccountingSoftware from '@components/ImportedFromAccountingSoftware';
 import ScreenWrapper from '@components/ScreenWrapper';
 import SearchBar from '@components/SearchBar';
@@ -17,7 +17,7 @@ import type {ListItem} from '@components/SelectionListWithSections/types';
 import Switch from '@components/Switch';
 import Text from '@components/Text';
 import useCleanupSelectedOptions from '@hooks/useCleanupSelectedOptions';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useNetwork from '@hooks/useNetwork';
@@ -82,6 +82,7 @@ function WorkspaceTaxesPage({
     const enabledRatesCount = selectedTaxesIDs.filter((taxID) => !policy?.taxRates?.taxes[taxID]?.isDisabled).length;
     const disabledRatesCount = selectedTaxesIDs.length - enabledRatesCount;
     const illustrations = useMemoizedLazyIllustrations(['Coins'] as const);
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Trashcan', 'Close', 'Checkmark', 'Plus'] as const);
 
     const fetchTaxes = useCallback(() => {
         openPolicyTaxesPage(policyID);
@@ -278,7 +279,7 @@ function WorkspaceTaxesPage({
         const options: Array<DropdownOption<WorkspaceTaxRatesBulkActionType>> = [];
         if (!hasAccountingConnections) {
             options.push({
-                icon: Expensicons.Trashcan,
+                icon: lazyIcons.Trashcan,
                 text: isMultiple ? translate('workspace.taxes.actions.deleteMultiple') : translate('workspace.taxes.actions.delete'),
                 value: CONST.POLICY.BULK_ACTION_TYPES.DELETE,
                 onSelected: () => setIsDeleteModalVisible(true),
@@ -288,7 +289,7 @@ function WorkspaceTaxesPage({
         // `Disable rates` when at least one enabled rate is selected.
         if (selectedTaxesIDs.some((taxID) => !policy?.taxRates?.taxes[taxID]?.isDisabled)) {
             options.push({
-                icon: Expensicons.Close,
+                icon: lazyIcons.Close,
                 text: translate('workspace.taxes.actions.disableTaxRates', {count: enabledRatesCount}),
                 value: CONST.POLICY.BULK_ACTION_TYPES.DISABLE,
                 onSelected: () => toggleTaxes(false),
@@ -298,21 +299,32 @@ function WorkspaceTaxesPage({
         // `Enable rates` when at least one disabled rate is selected.
         if (selectedTaxesIDs.some((taxID) => policy?.taxRates?.taxes[taxID]?.isDisabled)) {
             options.push({
-                icon: Expensicons.Checkmark,
+                icon: lazyIcons.Checkmark,
                 text: translate('workspace.taxes.actions.enableTaxRates', {count: disabledRatesCount}),
                 value: CONST.POLICY.BULK_ACTION_TYPES.ENABLE,
                 onSelected: () => toggleTaxes(true),
             });
         }
         return options;
-    }, [hasAccountingConnections, policy?.taxRates?.taxes, selectedTaxesIDs, toggleTaxes, translate, enabledRatesCount, disabledRatesCount]);
+    }, [
+        hasAccountingConnections,
+        policy?.taxRates?.taxes,
+        selectedTaxesIDs,
+        toggleTaxes,
+        translate,
+        enabledRatesCount,
+        disabledRatesCount,
+        lazyIcons.Trashcan,
+        lazyIcons.Close,
+        lazyIcons.Checkmark,
+    ]);
 
     const shouldShowBulkActionsButton = shouldUseNarrowLayout ? isMobileSelectionModeEnabled : selectedTaxesIDs.length > 0;
 
     const secondaryActions = useMemo(
         () => [
             {
-                icon: Expensicons.Gear,
+                icon: Gear,
                 text: translate('common.settings'),
                 onSelected: () => Navigation.navigate(ROUTES.WORKSPACE_TAXES_SETTINGS.getRoute(policyID)),
                 value: CONST.POLICY.SECONDARY_ACTIONS.SETTINGS,
@@ -327,7 +339,7 @@ function WorkspaceTaxesPage({
                 <Button
                     success
                     onPress={() => Navigation.navigate(ROUTES.WORKSPACE_TAX_CREATE.getRoute(policyID))}
-                    icon={Expensicons.Plus}
+                    icon={lazyIcons.Plus}
                     text={translate('workspace.taxes.addRate')}
                     style={[shouldUseNarrowLayout && styles.flex1]}
                 />

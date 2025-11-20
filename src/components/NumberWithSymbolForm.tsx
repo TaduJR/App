@@ -27,6 +27,7 @@ import Button from './Button';
 import FormHelpMessage from './FormHelpMessage';
 import * as Expensicons from './Icon/Expensicons';
 import ScrollView from './ScrollView';
+// Note: Expensicons.DownArrow and Expensicons.PlusMinus are not in the 34 icons list to migrate
 import TextInput from './TextInput';
 import isTextInputFocused from './TextInput/BaseTextInput/isTextInputFocused';
 import type {BaseTextInputRef} from './TextInput/BaseTextInput/types';

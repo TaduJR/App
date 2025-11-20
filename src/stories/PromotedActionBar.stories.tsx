@@ -1,9 +1,13 @@
 import React from 'react';
 import {View} from 'react-native';
-import * as Expensicons from '@components/Icon/Expensicons';
+import {CommentBubbles, ExpensifyLogoNew} from '@components/Icon/Expensicons';
 import PromotedActionsBar from '@components/PromotedActionsBar';
 import type {PromotedAction, PromotedActionsBarProps} from '@components/PromotedActionsBar';
 import variables from '@src/styles/variables';
+import type IconAsset from '@src/types/utils/IconAsset';
+
+const mockPin = 1 as unknown as IconAsset;
+const mockQrCode = 2 as unknown as IconAsset;
 
 /**
  * We use the Component Story Format for writing stories. Follow the docs here:
@@ -33,19 +37,19 @@ function Template(args: PromotedActionsBarProps) {
 const promotedActions = [
     {
         key: 'join',
-        icon: Expensicons.CommentBubbles,
+        icon: CommentBubbles,
         text: 'Join',
         onSelected: () => {},
     },
     {
         key: 'pin',
-        icon: Expensicons.Pin,
+        icon: mockPin,
         text: 'Pin',
         onSelected: () => {},
     },
     {
         key: 'share',
-        icon: Expensicons.QrCode,
+        icon: mockQrCode,
         text: 'Share',
         onSelected: () => {},
     },
@@ -53,7 +57,7 @@ const promotedActions = [
 
 const defaultPromotedAction = {
     key: '',
-    icon: Expensicons.ExpensifyLogoNew,
+    icon: ExpensifyLogoNew,
     text: '',
     onSelected: () => {},
 };

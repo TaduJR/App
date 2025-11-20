@@ -15,6 +15,7 @@ import SelectionList from '@components/SelectionListWithSections';
 import type {SectionListDataType, SplitListItemType} from '@components/SelectionListWithSections/types';
 import useDisplayFocusedInputUnderKeyboard from '@hooks/useDisplayFocusedInputUnderKeyboard';
 import useGetIOUReportFromReportAction from '@hooks/useGetIOUReportFromReportAction';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
@@ -56,6 +57,7 @@ function SplitExpensePage({route}: SplitExpensePageProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {listRef, viewRef, footerRef, bottomOffset, scrollToFocusedInput, SplitListItem} = useDisplayFocusedInputUnderKeyboard();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
 
     const {reportID, transactionID, splitExpenseTransactionID, backTo} = route.params;
 
@@ -297,7 +299,7 @@ function SplitExpensePage({route}: SplitExpensePageProps) {
                 <MenuItem
                     onPress={onAddSplitExpense}
                     title={translate('iou.addSplit')}
-                    icon={Expensicons.Plus}
+                    icon={icons.Plus}
                     style={[styles.ph4]}
                 />
                 {shouldShowMakeSplitsEven && (
@@ -310,7 +312,7 @@ function SplitExpensePage({route}: SplitExpensePageProps) {
                 )}
             </View>
         );
-    }, [onAddSplitExpense, onMakeSplitsEven, translate, childTransactions, shouldUseNarrowLayout, styles.w100, styles.ph4, styles.flexColumn, styles.mt1, styles.mb3]);
+    }, [onAddSplitExpense, onMakeSplitsEven, translate, childTransactions, shouldUseNarrowLayout, styles.w100, styles.ph4, styles.flexColumn, styles.mt1, styles.mb3, icons.Plus]);
 
     const footerContent = useMemo(() => {
         const shouldShowWarningMessage = sumOfSplitExpenses < transactionDetailsAmount;

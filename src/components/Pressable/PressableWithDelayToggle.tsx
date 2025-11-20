@@ -2,9 +2,9 @@
 import React from 'react';
 import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
 import Icon from '@components/Icon';
-import * as Expensicons from '@components/Icon/Expensicons';
 import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useThrottledButtonState from '@hooks/useThrottledButtonState';
@@ -70,7 +70,7 @@ type PressableWithDelayToggleProps = PressableProps & {
 };
 
 function PressableWithDelayToggle({
-    iconChecked = Expensicons.Checkmark,
+    iconChecked: iconCheckedProp,
     inline = true,
     onPress,
     text,
@@ -91,6 +91,8 @@ function PressableWithDelayToggle({
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
     const [isActive, temporarilyDisableInteractions] = useThrottledButtonState();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Checkmark'] as const);
+    const iconChecked = iconCheckedProp ?? lazyIcons.Checkmark;
 
     const updatePressState = () => {
         if (!isActive) {

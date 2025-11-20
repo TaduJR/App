@@ -8,13 +8,13 @@ import FormProvider from '@components/Form/FormProvider';
 import InputWrapperWithRef from '@components/Form/InputWrapper';
 import type {FormOnyxValues} from '@components/Form/types';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
-import * as Expensicons from '@components/Icon/Expensicons';
 import type BaseModalProps from '@components/Modal/types';
 import type {AnimatedTextInputRef} from '@components/RNTextInput';
 import ScreenWrapper from '@components/ScreenWrapper';
 import Text from '@components/Text';
 import TextInput from '@components/TextInput';
 import ValuePicker from '@components/ValuePicker';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import usePolicy from '@hooks/usePolicy';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -70,6 +70,7 @@ function IOURequestStepSubrate({
     const styles = useThemeStyles();
     const policy = usePolicy(report?.policyID);
     const customUnit = getPerDiemCustomUnit(policy);
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan'] as const);
     const [isDeleteStopModalOpen, setIsDeleteStopModalOpen] = useState(false);
     const [restoreFocusType, setRestoreFocusType] = useState<BaseModalProps['restoreFocusType']>();
     const navigation = useNavigation();
@@ -187,7 +188,7 @@ function IOURequestStepSubrate({
                     shouldSetModalVisibility={false}
                     threeDotsMenuItems={[
                         {
-                            icon: Expensicons.Trashcan,
+                            icon: icons.Trashcan,
                             text: translate('iou.deleteSubrate'),
                             onSelected: () => {
                                 setRestoreFocusType(undefined);

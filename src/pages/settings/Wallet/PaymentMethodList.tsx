@@ -11,6 +11,7 @@ import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -192,6 +193,7 @@ function PaymentMethodList({
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
     const illustrations = useThemeIllustrations();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
 
     const [isUserValidated] = useOnyx(ONYXKEYS.ACCOUNT, {
         selector: isUserValidatedSelector,
@@ -396,12 +398,12 @@ function PaymentMethodList({
             <MenuItem
                 onPress={onPressItem}
                 title={translate('bankAccount.addBankAccount')}
-                icon={Expensicons.Plus}
+                icon={icons.Plus}
                 wrapperStyle={[styles.paymentMethod, listItemStyle]}
             />
         ),
 
-        [onPressItem, translate, styles.paymentMethod, listItemStyle],
+        [onPressItem, translate, styles.paymentMethod, listItemStyle, icons.Plus],
     );
 
     const itemsToRender = useMemo(() => {

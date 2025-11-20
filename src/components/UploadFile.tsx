@@ -2,6 +2,7 @@ import React from 'react';
 import type {StyleProp, ViewStyle} from 'react-native';
 import {View} from 'react-native';
 import type {ValueOf} from 'type-fest';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -12,7 +13,7 @@ import AttachmentPicker from './AttachmentPicker';
 import Button from './Button';
 import DotIndicatorMessage from './DotIndicatorMessage';
 import Icon from './Icon';
-import {Close, Paperclip} from './Icon/Expensicons';
+import {Paperclip} from './Icon/Expensicons';
 import {PressableWithFeedback} from './Pressable';
 import TextWithMiddleEllipsis from './TextWithMiddleEllipsis';
 
@@ -67,6 +68,7 @@ function UploadFile({
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const theme = useTheme();
+    const icons = useMemoizedLazyExpensifyIcons(['Close'] as const);
     const handleFileUpload = (files: FileObject[]) => {
         const resultedFiles = [...uploadedFiles, ...files];
 
@@ -143,7 +145,7 @@ function UploadFile({
                         accessibilityLabel={translate('common.remove')}
                     >
                         <Icon
-                            src={Close}
+                            src={icons.Close}
                             fill={theme.icon}
                             medium
                         />

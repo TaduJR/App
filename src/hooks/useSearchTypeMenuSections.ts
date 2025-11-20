@@ -9,6 +9,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetails, Policy, Session} from '@src/types/onyx';
 import useCardFeedsForDisplay from './useCardFeedsForDisplay';
 import useCreateEmptyReportConfirmation from './useCreateEmptyReportConfirmation';
+import {useMemoizedLazyExpensifyIcons} from './useLazyAsset';
 import useNetwork from './useNetwork';
 import useOnyx from './useOnyx';
 import usePermissions from './usePermissions';
@@ -46,6 +47,7 @@ const currentUserLoginAndAccountIDSelector = (session: OnyxEntry<Session>) => ({
  */
 const useSearchTypeMenuSections = () => {
     const {defaultCardFeed, cardFeedsByPolicy, defaultExpensifyCard} = useCardFeedsForDisplay();
+    const icons = useMemoizedLazyExpensifyIcons(['CheckCircle'] as const);
 
     const {isOffline} = useNetwork();
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {selector: policiesSelector, canBeMissing: true});
@@ -133,6 +135,7 @@ const useSearchTypeMenuSections = () => {
                 defaultExpensifyCard,
                 isASAPSubmitBetaEnabled,
                 hasViolations,
+                icons,
                 createReportWithConfirmation,
             ),
         [
@@ -147,6 +150,7 @@ const useSearchTypeMenuSections = () => {
             isOffline,
             isASAPSubmitBetaEnabled,
             hasViolations,
+            icons,
             createReportWithConfirmation,
         ],
     );

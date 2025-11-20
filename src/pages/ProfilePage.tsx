@@ -17,6 +17,7 @@ import PromotedActionsBar, {PromotedActions} from '@components/PromotedActionsBa
 import ScreenWrapper from '@components/ScreenWrapper';
 import ScrollView from '@components/ScrollView';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -89,6 +90,7 @@ function ProfilePage({route}: ProfilePageProps) {
 
     const styles = useThemeStyles();
     const {translate, formatPhoneNumber} = useLocalize();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Pin'] as const);
 
     const isValidAccountID = isValidAccountRoute(accountID);
     const loginParams = route.params?.login;
@@ -162,7 +164,7 @@ function ProfilePage({route}: ProfilePageProps) {
     const promotedActions = useMemo(() => {
         const result: PromotedAction[] = [];
         if (report) {
-            result.push(PromotedActions.pin(report));
+            result.push(PromotedActions.pin(report, {Pin: lazyIcons.Pin}));
         }
 
         // If it's a self DM, we only want to show the Message button if the self DM report exists because we don't want to optimistically create a report for self DM
@@ -170,7 +172,7 @@ function ProfilePage({route}: ProfilePageProps) {
             result.push(PromotedActions.message({reportID: report?.reportID, accountID, login: loginParams}));
         }
         return result;
-    }, [accountID, isCurrentUser, loginParams, report]);
+    }, [accountID, isCurrentUser, loginParams, report, lazyIcons.Pin]);
 
     return (
         <ScreenWrapper testID={ProfilePage.displayName}>

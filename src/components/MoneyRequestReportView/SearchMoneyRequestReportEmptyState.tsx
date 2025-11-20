@@ -3,6 +3,7 @@ import {View} from 'react-native';
 import EmptyStateComponent from '@components/EmptyStateComponent';
 import * as Expensicons from '@components/Icon/Expensicons';
 import LottieAnimations from '@components/LottieAnimations';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -22,6 +23,7 @@ function SearchMoneyRequestReportEmptyState({report, policy}: {report: OnyxTypes
     const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report.reportID}`, {canBeMissing: true});
     const {translate} = useLocalize();
     const styles = useThemeStyles();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
     const [lastDistanceExpenseType] = useOnyx(ONYXKEYS.NVP_LAST_DISTANCE_EXPENSE_TYPE, {canBeMissing: true});
     const reportId = report.reportID;
     const isReportArchived = isArchivedReport(reportNameValuePairs);
@@ -30,7 +32,7 @@ function SearchMoneyRequestReportEmptyState({report, policy}: {report: OnyxTypes
         {
             value: CONST.REPORT.ADD_EXPENSE_OPTIONS.CREATE_NEW_EXPENSE,
             text: translate('iou.createExpense'),
-            icon: Expensicons.Plus,
+            icon: icons.Plus,
             onSelected: () => {
                 if (!reportId) {
                     return;

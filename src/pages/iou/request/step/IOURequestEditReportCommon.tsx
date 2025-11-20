@@ -9,6 +9,7 @@ import InviteMemberListItem from '@components/SelectionList/ListItem/InviteMembe
 import type {ListItem} from '@components/SelectionList/types';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useDebouncedState from '@hooks/useDebouncedState';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePolicy from '@hooks/usePolicy';
@@ -64,6 +65,7 @@ function IOURequestEditReportCommon({
 }: Props) {
     const {translate, localeCompare} = useLocalize();
     const {options} = useOptionsList();
+    const icons = useMemoizedLazyExpensifyIcons(['Close'] as const);
     const [outstandingReportsByPolicyID] = useOnyx(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID, {canBeMissing: true});
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
@@ -264,7 +266,7 @@ function IOURequestEditReportCommon({
                                 onPress={removeFromReport}
                                 title={translate('iou.removeFromReport')}
                                 description={translate('iou.moveToPersonalSpace')}
-                                icon={Expensicons.Close}
+                                icon={icons.Close}
                             />
                         )}
                         {createReportOption}

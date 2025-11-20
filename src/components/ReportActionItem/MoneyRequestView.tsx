@@ -15,6 +15,7 @@ import ViolationMessages from '@components/ViolationMessages';
 import {WideRHPContext} from '@components/WideRHPContextProvider';
 import useActiveRoute from '@hooks/useActiveRoute';
 import useEnvironment from '@hooks/useEnvironment';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -134,6 +135,7 @@ function MoneyRequestView({
     const {translate, toLocaleDigit} = useLocalize();
     const {getReportRHPActiveRoute} = useActiveRoute();
     const [lastVisitedPath] = useOnyx(ONYXKEYS.LAST_VISITED_PATH, {canBeMissing: true});
+    const icons = useMemoizedLazyExpensifyIcons(['DotIndicator', 'Checkmark'] as const);
 
     const [allTransactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {canBeMissing: false});
 
@@ -656,7 +658,7 @@ function MoneyRequestView({
                 {isCustomUnitOutOfPolicy && isPerDiemRequest && (
                     <View style={[styles.flexRow, styles.alignItemsCenter, styles.gap1, styles.mh4, styles.mb2]}>
                         <Icon
-                            src={Expensicons.DotIndicator}
+                            src={icons.DotIndicator}
                             fill={theme.danger}
                             height={16}
                             width={16}
@@ -673,7 +675,7 @@ function MoneyRequestView({
                     <MenuItemWithTopDescription
                         title={amountTitle}
                         shouldShowTitleIcon={shouldShowPaid}
-                        titleIcon={Expensicons.Checkmark}
+                        titleIcon={icons.Checkmark}
                         description={amountDescription}
                         titleStyle={styles.textHeadlineH2}
                         interactive={canEditAmount}

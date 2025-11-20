@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect} from 'react';
 import type {ReactNode} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -38,6 +39,7 @@ type ConfirmedRouteProps = {
 };
 
 function ConfirmedRoute({transaction, isSmallerIcon, shouldHaveBorderRadius = true, requireRouteToDisplayMap = false, interactive}: ConfirmedRouteProps) {
+    const icons = useMemoizedLazyExpensifyIcons(['DotIndicatorUnfilled', 'DotIndicator'] as const);
     const {isOffline} = useNetwork();
     const {route0: route} = transaction?.routes ?? {};
     const waypoints = transaction?.comment?.waypoints ?? {};
@@ -74,11 +76,11 @@ function ConfirmedRoute({transaction, isSmallerIcon, shouldHaveBorderRadius = tr
                     const index = getWaypointIndex(key);
                     let MarkerComponent: IconAsset;
                     if (index === 0) {
-                        MarkerComponent = Expensicons.DotIndicatorUnfilled;
+                        MarkerComponent = icons.DotIndicatorUnfilled;
                     } else if (index === lastWaypointIndex) {
                         MarkerComponent = Expensicons.Location;
                     } else {
-                        MarkerComponent = Expensicons.DotIndicator;
+                        MarkerComponent = icons.DotIndicator;
                     }
 
                     return {
@@ -89,7 +91,7 @@ function ConfirmedRoute({transaction, isSmallerIcon, shouldHaveBorderRadius = tr
                 })
                 .filter((waypoint): waypoint is WayPoint => !!waypoint);
         },
-        [getMarkerComponent],
+        [getMarkerComponent, icons.DotIndicator, icons.DotIndicatorUnfilled],
     );
 
     const waypointMarkers = getWaypointMarkers(waypoints);

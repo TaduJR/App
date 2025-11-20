@@ -20,7 +20,7 @@ import type {ListItem} from '@components/SelectionListWithSections/types';
 import TableListItemSkeleton from '@components/Skeletons/TableRowSkeleton';
 import Text from '@components/Text';
 import useCleanupSelectedOptions from '@hooks/useCleanupSelectedOptions';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useNetwork from '@hooks/useNetwork';
@@ -130,6 +130,7 @@ function WorkspacePerDiemPage({route}: WorkspacePerDiemPageProps) {
     const [policyCategories] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}${policyID}`, {canBeMissing: false});
     const isMobileSelectionModeEnabled = useMobileSelectionMode();
     const illustrations = useMemoizedLazyIllustrations(['PerDiem'] as const);
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan'] as const);
 
     const [customUnit, allRatesArray, allSubRates] = useMemo(() => {
         const customUnits = getPerDiemCustomUnit(policy);
@@ -318,7 +319,7 @@ function WorkspacePerDiemPage({route}: WorkspacePerDiemPageProps) {
 
         if (shouldUseNarrowLayout ? canSelectMultiple : selectedPerDiem.length > 0) {
             options.push({
-                icon: Expensicons.Trashcan,
+                icon: icons.Trashcan,
                 text: translate('workspace.perDiem.deleteRates', {count: selectedPerDiem.length}),
                 value: CONST.POLICY.BULK_ACTION_TYPES.DELETE,
                 onSelected: () => setDeletePerDiemConfirmModalVisible(true),

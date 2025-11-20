@@ -7,7 +7,7 @@ import type {ValueOf} from 'type-fest';
 import Avatar from '@components/Avatar';
 import Badge from '@components/Badge';
 import Icon from '@components/Icon';
-import * as Expensicons from '@components/Icon/Expensicons';
+import {ArrowRight, Hourglass} from '@components/Icon/Expensicons';
 import * as Illustrations from '@components/Icon/Illustrations';
 import type {PopoverMenuItem} from '@components/PopoverMenu';
 import Text from '@components/Text';
@@ -18,7 +18,7 @@ import type {WithCurrentUserPersonalDetailsProps} from '@components/withCurrentU
 import withCurrentUserPersonalDetails from '@components/withCurrentUserPersonalDetails';
 import WorkspacesListRowDisplayName from '@components/WorkspacesListRowDisplayName';
 import useAnimatedHighlightStyle from '@hooks/useAnimatedHighlightStyle';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useTheme from '@hooks/useTheme';
@@ -91,12 +91,12 @@ type BrickRoadIndicatorIconProps = {
     brickRoadIndicator?: ValueOf<typeof CONST.BRICK_ROAD_INDICATOR_STATUS>;
 };
 
-function BrickRoadIndicatorIcon({brickRoadIndicator}: BrickRoadIndicatorIconProps) {
+function BrickRoadIndicatorIcon({brickRoadIndicator, icons}: BrickRoadIndicatorIconProps & {icons: ReturnType<typeof useMemoizedLazyExpensifyIcons<['DotIndicator']>>}) {
     const theme = useTheme();
 
     return brickRoadIndicator ? (
         <Icon
-            src={Expensicons.DotIndicator}
+            src={icons.DotIndicator}
             fill={brickRoadIndicator === CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR ? theme.danger : theme.iconSuccessFill}
         />
     ) : null;
@@ -127,6 +127,7 @@ function WorkspacesListRow({
     const {translate} = useLocalize();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const theme = useTheme();
+    const icons = useMemoizedLazyExpensifyIcons(['DotIndicator'] as const);
     const isNarrow = layoutWidth === CONST.LAYOUT_WIDTH.NARROW;
     const illustrations = useMemoizedLazyIllustrations(['Mailbox'] as const);
 
@@ -183,7 +184,7 @@ function WorkspacesListRow({
                         text={translate('workspace.common.requested')}
                         textStyles={styles.textStrong}
                         badgeStyles={[styles.alignSelfCenter, styles.badgeBordered]}
-                        icon={Expensicons.Hourglass}
+                        icon={Hourglass}
                     />
                 </View>
             )}
@@ -205,7 +206,10 @@ function WorkspacesListRow({
             {!isJoinRequestPending && (
                 <View style={[styles.flexRow, styles.ml2, styles.gap1]}>
                     <View style={[styles.flexRow, styles.gap2, styles.alignItemsCenter, isNarrow && styles.workspaceListRBR]}>
-                        <BrickRoadIndicatorIcon brickRoadIndicator={brickRoadIndicator} />
+                        <BrickRoadIndicatorIcon
+                            brickRoadIndicator={brickRoadIndicator}
+                            icons={icons}
+                        />
                     </View>
                     <ThreeDotsMenu
                         shouldSelfPosition
@@ -300,7 +304,7 @@ function WorkspacesListRow({
                     {!isNarrow && (
                         <View style={[styles.justifyContentCenter, styles.alignItemsCenter, styles.touchableButtonImage]}>
                             <Icon
-                                src={Expensicons.ArrowRight}
+                                src={ArrowRight}
                                 fill={theme.icon}
                                 additionalStyles={[styles.alignSelfCenter, !isHovered && styles.opacitySemiTransparent]}
                                 isButtonIcon

@@ -4,6 +4,7 @@ import React, {useContext, useMemo, useRef} from 'react';
 import type {GestureResponderEvent, StyleProp, TextStyle, ViewStyle} from 'react-native';
 import {View} from 'react-native';
 import type {ValueOf} from 'type-fest';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
@@ -516,6 +517,7 @@ function MenuItem({
     const {isExecuting, singleExecution, waitForNavigate} = useContext(MenuItemGroupContext) ?? {};
     const popoverAnchor = useRef<View>(null);
     const deviceHasHoverSupport = hasHoverSupport();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['DotIndicator', 'Checkmark'] as const);
 
     const isCompact = viewMode === CONST.OPTION_MODE.COMPACT;
     const isDeleted = style && Array.isArray(style) ? style.includes(styles.offlineFeedbackDeleted) : false;
@@ -928,7 +930,7 @@ function MenuItem({
                                                 {!!brickRoadIndicator && (
                                                     <View style={[styles.alignItemsCenter, styles.justifyContentCenter, styles.ml1]}>
                                                         <Icon
-                                                            src={Expensicons.DotIndicator}
+                                                            src={lazyIcons.DotIndicator}
                                                             fill={brickRoadIndicator === 'error' ? theme.danger : theme.success}
                                                         />
                                                     </View>
@@ -960,7 +962,7 @@ function MenuItem({
                                                 {shouldShowSelectedState && <SelectCircle isChecked={isSelected} />}
                                                 {shouldShowSelectedItemCheck && isSelected && (
                                                     <Icon
-                                                        src={Expensicons.Checkmark}
+                                                        src={lazyIcons.Checkmark}
                                                         fill={theme.iconSuccessFill}
                                                         additionalStyles={styles.alignSelfCenter}
                                                     />

@@ -2,12 +2,12 @@ import {emailSelector} from '@selectors/Session';
 import React, {useCallback, useState} from 'react';
 import {View} from 'react-native';
 import ConfirmModal from '@components/ConfirmModal';
-import * as Expensicons from '@components/Icon/Expensicons';
 import * as Illustrations from '@components/Icon/Illustrations';
 import MenuItem from '@components/MenuItem';
 import ScrollView from '@components/ScrollView';
 import Section from '@components/Section';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useTheme from '@hooks/useTheme';
@@ -26,6 +26,7 @@ function EnabledPage() {
     const [isVisible, setIsVisible] = useState(false);
     const [currentUserLogin] = useOnyx(ONYXKEYS.SESSION, {selector: emailSelector, canBeMissing: false});
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Close'] as const);
 
     const closeModal = useCallback(() => {
         setIsVisible(false);
@@ -56,7 +57,7 @@ function EnabledPage() {
                         }
                         Navigation.navigate(ROUTES.SETTINGS_2FA_DISABLE);
                     }}
-                    icon={Expensicons.Close}
+                    icon={icons.Close}
                     iconFill={theme.danger}
                 />
                 <ConfirmModal

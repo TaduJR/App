@@ -4,12 +4,12 @@ import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import Icon from '@components/Icon';
 import getBankIcon from '@components/Icon/BankIcons';
-import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import ScreenWrapper from '@components/ScreenWrapper';
 import SelectionList from '@components/SelectionListWithSections';
 import RadioListItem from '@components/SelectionListWithSections/RadioListItem';
 import type {ListItem} from '@components/SelectionListWithSections/types';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -34,6 +34,7 @@ function ChooseTransferAccountPage() {
 
     const styles = useThemeStyles();
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
     /**
      * Go back to transfer balance screen with the selected bank account set
      * @param event Click event object
@@ -116,7 +117,7 @@ function ChooseTransferAccountPage() {
                                 ? translate('paymentMethodList.addNewBankAccount')
                                 : translate('paymentMethodList.addNewDebitCard')
                         }
-                        icon={Expensicons.Plus}
+                        icon={icons.Plus}
                     />
                 }
             />

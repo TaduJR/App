@@ -26,7 +26,7 @@ import useAutoTurnSelectionModeOffWhenHasNoActiveOption from '@hooks/useAutoTurn
 import useCleanupSelectedOptions from '@hooks/useCleanupSelectedOptions';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useEnvironment from '@hooks/useEnvironment';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useNetwork from '@hooks/useNetwork';
@@ -92,6 +92,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const canSelectMultiple = isSmallScreenWidth ? isMobileSelectionModeEnabled : true;
     const illustrations = useMemoizedLazyIllustrations(['FolderOpen'] as const);
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Trashcan', 'Close', 'Checkmark', 'Plus'] as const);
 
     const {
         taskReport: setupCategoryTaskReport,
@@ -347,7 +348,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
         if (isSmallScreenWidth ? canSelectMultiple : selectedCategories.length > 0) {
             if (!isThereAnyAccountingConnection) {
                 options.push({
-                    icon: Expensicons.Trashcan,
+                    icon: lazyIcons.Trashcan,
                     text: translate(selectedCategories.length === 1 ? 'workspace.categories.deleteCategory' : 'workspace.categories.deleteCategories'),
                     value: CONST.POLICY.BULK_ACTION_TYPES.DELETE,
                     onSelected: () => {
@@ -373,7 +374,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
                         return acc;
                     }, {});
                 options.push({
-                    icon: Expensicons.Close,
+                    icon: lazyIcons.Close,
                     text: translate(enabledCategories.length === 1 ? 'workspace.categories.disableCategory' : 'workspace.categories.disableCategories'),
                     value: CONST.POLICY.BULK_ACTION_TYPES.DISABLE,
                     onSelected: () => {
@@ -406,7 +407,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
                         return acc;
                     }, {});
                 options.push({
-                    icon: Expensicons.Checkmark,
+                    icon: lazyIcons.Checkmark,
                     text: translate(disabledCategories.length === 1 ? 'workspace.categories.enableCategory' : 'workspace.categories.enableCategories'),
                     value: CONST.POLICY.BULK_ACTION_TYPES.ENABLE,
                     onSelected: () => {
@@ -444,7 +445,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
                     <Button
                         success
                         onPress={navigateToCreateCategoryPage}
-                        icon={Expensicons.Plus}
+                        icon={lazyIcons.Plus}
                         text={translate('workspace.categories.addCategory')}
                         style={[shouldUseNarrowLayout && styles.flex1]}
                     />
@@ -603,7 +604,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
                                 !policyHasAccountingConnections
                                     ? [
                                           {
-                                              icon: Expensicons.Plus,
+                                              icon: lazyIcons.Plus,
                                               buttonText: translate('workspace.categories.addCategory'),
                                               buttonAction: navigateToCreateCategoryPage,
                                               success: true,

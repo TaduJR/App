@@ -2,7 +2,7 @@ import {accountIDSelector} from '@selectors/Session';
 import {addMinutes} from 'date-fns';
 import React from 'react';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -17,7 +17,7 @@ import ROUTES from '@src/ROUTES';
 import type {ReportNameValuePairs} from '@src/types/onyx';
 import ButtonWithDropdownMenu from './ButtonWithDropdownMenu';
 import type {DropdownOption, OnboardingHelpType} from './ButtonWithDropdownMenu/types';
-import {CalendarSolid, Close, Monitor} from './Icon/Expensicons';
+import {CalendarSolid, Monitor} from './Icon/Expensicons';
 
 type OnboardingHelpButtonProps = {
     /** The ID of onboarding chat report */
@@ -40,6 +40,7 @@ const reportNameValuePartsSelector = (reportNameValuePairs?: ReportNameValuePair
 
 function OnboardingHelpDropdownButton({reportID, shouldUseNarrowLayout, shouldShowRegisterForWebinar, shouldShowGuideBooking, hasActiveScheduledCall}: OnboardingHelpButtonProps) {
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Close'] as const);
     const [accountID] = useOnyx(ONYXKEYS.SESSION, {selector: accountIDSelector, canBeMissing: false});
 
     const [latestScheduledCall] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {
@@ -104,7 +105,7 @@ function OnboardingHelpDropdownButton({reportID, shouldUseNarrowLayout, shouldSh
             text: translate('common.cancel'),
             value: CONST.ONBOARDING_HELP.CANCEL,
             onSelected: () => cancelBooking(latestScheduledCall),
-            icon: Close,
+            icon: icons.Close,
         });
     }
 

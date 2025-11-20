@@ -14,6 +14,7 @@ import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';
 import EducationalTooltip from '@components/Tooltip/EducationalTooltip';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -52,6 +53,7 @@ function OptionRowLHN({
     isScreenFocused = false,
     testID,
 }: OptionRowLHNProps) {
+    const icons = useMemoizedLazyExpensifyIcons(['DotIndicator', 'Pin'] as const);
     const theme = useTheme();
     const styles = useThemeStyles();
     const popoverAnchor = useRef<View>(null);
@@ -320,7 +322,7 @@ function OptionRowLHN({
                                             <View style={[styles.alignItemsCenter, styles.justifyContentCenter]}>
                                                 <Icon
                                                     testID="RBR Icon"
-                                                    src={Expensicons.DotIndicator}
+                                                    src={icons.DotIndicator}
                                                     fill={theme.danger}
                                                 />
                                             </View>
@@ -335,7 +337,7 @@ function OptionRowLHN({
                                         <View style={styles.ml2}>
                                             <Icon
                                                 testID="GBR Icon"
-                                                src={Expensicons.DotIndicator}
+                                                src={icons.DotIndicator}
                                                 fill={theme.success}
                                             />
                                         </View>
@@ -360,7 +362,7 @@ function OptionRowLHN({
                                             <Icon
                                                 testID="Pin Icon"
                                                 fill={theme.icon}
-                                                src={Expensicons.Pin}
+                                                src={icons.Pin}
                                             />
                                         </View>
                                     )}

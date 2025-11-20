@@ -4,7 +4,7 @@ import ActivityIndicator from '@components/ActivityIndicator';
 import Button from '@components/Button';
 import ConfirmModal from '@components/ConfirmModal';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
-import * as Expensicons from '@components/Icon/Expensicons';
+import {Key, Mail, NewWindow} from '@components/Icon/Expensicons';
 import * as Illustrations from '@components/Icon/Illustrations';
 import MenuItem from '@components/MenuItem';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
@@ -14,6 +14,7 @@ import ScrollView from '@components/ScrollView';
 import Section from '@components/Section';
 import ThreeDotsMenu from '@components/ThreeDotsMenu';
 import useGetReceiptPartnersIntegrationData from '@hooks/useGetReceiptPartnersIntegrationData';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import usePolicy from '@hooks/usePolicy';
@@ -41,6 +42,7 @@ function WorkspaceReceiptPartnersPage({route}: WorkspaceReceiptPartnersPageProps
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan'] as const);
     const receiptPartnerNames = CONST.POLICY.RECEIPT_PARTNERS.NAME;
     const receiptPartnerIntegrations = Object.values(receiptPartnerNames);
     const {isOffline} = useNetwork();
@@ -120,19 +122,19 @@ function WorkspaceReceiptPartnersPage({route}: WorkspaceReceiptPartnersPageProps
                     if (shouldShowEnterCredentialsError) {
                         return [
                             {
-                                icon: Expensicons.Key,
+                                icon: Key,
                                 text: translate('workspace.accounting.enterCredentials'),
                                 onSelected: () => startIntegrationFlow({name: CONST.POLICY.RECEIPT_PARTNERS.NAME.UBER}),
                                 shouldCallAfterModalHide: true,
                                 disabled: isOffline,
-                                iconRight: Expensicons.NewWindow,
+                                iconRight: NewWindow,
                             },
                         ];
                     }
 
                     return [
                         {
-                            icon: Expensicons.Trashcan,
+                            icon: icons.Trashcan,
                             text: translate('workspace.accounting.disconnect'),
                             onSelected: () => {
                                 setIsDisconnectModalOpen(true);
@@ -145,7 +147,7 @@ function WorkspaceReceiptPartnersPage({route}: WorkspaceReceiptPartnersPageProps
                     return [];
             }
         },
-        [shouldShowEnterCredentialsError, translate, isOffline, startIntegrationFlow],
+        [shouldShowEnterCredentialsError, translate, isOffline, startIntegrationFlow, icons.Trashcan],
     );
 
     const onCloseModal = useCallback(() => {
@@ -326,7 +328,7 @@ function WorkspaceReceiptPartnersPage({route}: WorkspaceReceiptPartnersPageProps
                                         <MenuItem
                                             title={translate('workspace.receiptPartners.uber.manageInvites')}
                                             shouldShowRightIcon
-                                            icon={Expensicons.Mail}
+                                            icon={Mail}
                                             style={[styles.sectionMenuItemTopDescription, styles.mbn3, !centralBillingAccountEmail && styles.mt6]}
                                             onPress={() => Navigation.navigate(ROUTES.WORKSPACE_RECEIPT_PARTNERS_INVITE_EDIT.getRoute(policyID, CONST.POLICY.RECEIPT_PARTNERS.NAME.UBER))}
                                         />

@@ -2,11 +2,10 @@ import React from 'react';
 import {View} from 'react-native';
 import type {ValueOf} from 'type-fest';
 import Icon from '@components/Icon';
-import * as Expensicons from '@components/Icon/Expensicons';
 import SelectCircle from '@components/SelectCircle';
 import Text from '@components/Text';
 import useHasTeam2025Pricing from '@hooks/useHasTeam2025Pricing';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import usePreferredCurrency from '@hooks/usePreferredCurrency';
 import usePrivateSubscription from '@hooks/usePrivateSubscription';
@@ -41,6 +40,7 @@ function SubscriptionPlanCard({subscriptionPlan, isFromComparisonModal = false, 
     const privateSubscription = usePrivateSubscription();
     const preferredCurrency = usePreferredCurrency();
     const hasTeam2025Pricing = useHasTeam2025Pricing();
+    const icons = useMemoizedLazyExpensifyIcons(['Checkmark'] as const);
     const lazyIllustrations = useMemoizedLazyIllustrations(['Mailbox', 'ShieldYellow'] as const);
     const {title, src, description, benefits, note, subtitle} = getSubscriptionPlanInfo(
         translate,
@@ -69,7 +69,7 @@ function SubscriptionPlanCard({subscriptionPlan, isFromComparisonModal = false, 
                         style={[styles.flex1, styles.flexRow, styles.alignItemsCenter, shouldUseNarrowLayout ? styles.mt3 : styles.mt4]}
                     >
                         <Icon
-                            src={Expensicons.Checkmark}
+                            src={icons.Checkmark}
                             fill={theme.iconSuccessFill}
                             width={variables.iconSizeSmall}
                             height={variables.iconSizeSmall}

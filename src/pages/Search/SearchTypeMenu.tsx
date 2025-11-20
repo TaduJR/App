@@ -58,7 +58,7 @@ function SearchTypeMenu({queryJSON}: SearchTypeMenuProps) {
         CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.RENAME_SAVED_SEARCH,
         !!typeMenuSections.find((section) => section.translationPath === 'search.savedSearchesMenuItemTitle') && isFocused,
     );
-    const expensifyIcons = useMemoizedLazyExpensifyIcons(['Bookmark'] as const);
+    const expensifyIcons = useMemoizedLazyExpensifyIcons(['Bookmark', 'Trashcan'] as const);
     const {showDeleteModal, DeleteConfirmModal} = useDeleteSavedSearch();
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
     const personalDetails = usePersonalDetails();
@@ -80,7 +80,10 @@ function SearchTypeMenu({queryJSON}: SearchTypeMenuProps) {
         clearSelectedTransactions,
     });
 
-    const getOverflowMenu = useCallback((itemName: string, itemHash: number, itemQuery: string) => getOverflowMenuUtil(itemName, itemHash, itemQuery, showDeleteModal), [showDeleteModal]);
+    const getOverflowMenu = useCallback(
+        (itemName: string, itemHash: number, itemQuery: string) => getOverflowMenuUtil(itemName, itemHash, itemQuery, showDeleteModal, {Trashcan: expensifyIcons.Trashcan}),
+        [showDeleteModal, expensifyIcons.Trashcan],
+    );
     const createSavedSearchMenuItem = useCallback(
         (item: SaveSearchItem, key: string, index: number) => {
             let title = item.name;

@@ -7,6 +7,7 @@ import DistanceMapView from '@components/DistanceMapView';
 import * as Expensicons from '@components/Icon/Expensicons';
 import ImageSVG from '@components/ImageSVG';
 import type {WayPoint} from '@components/MapView/MapViewTypes';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePolicy from '@hooks/usePolicy';
@@ -39,6 +40,7 @@ type DistanceRequestFooterProps = {
 };
 
 function DistanceRequestFooter({waypoints, transaction, navigateToWaypointEditPage, policy}: DistanceRequestFooterProps) {
+    const icons = useMemoizedLazyExpensifyIcons(['DotIndicatorUnfilled', 'DotIndicator', 'Plus'] as const);
     const theme = useTheme();
     const styles = useThemeStyles();
     const {translate} = useLocalize();
@@ -77,11 +79,11 @@ function DistanceRequestFooter({waypoints, transaction, navigateToWaypointEditPa
                     const index = getWaypointIndex(key);
                     let MarkerComponent: IconAsset;
                     if (index === 0) {
-                        MarkerComponent = Expensicons.DotIndicatorUnfilled;
+                        MarkerComponent = icons.DotIndicatorUnfilled;
                     } else if (index === lastWaypointIndex) {
                         MarkerComponent = Expensicons.Location;
                     } else {
-                        MarkerComponent = Expensicons.DotIndicator;
+                        MarkerComponent = icons.DotIndicator;
                     }
 
                     return {
@@ -91,7 +93,7 @@ function DistanceRequestFooter({waypoints, transaction, navigateToWaypointEditPa
                     };
                 })
                 .filter((waypoint): waypoint is WayPoint => !!waypoint),
-        [waypoints, lastWaypointIndex, getMarkerComponent],
+        [waypoints, lastWaypointIndex, getMarkerComponent, icons.DotIndicator, icons.DotIndicatorUnfilled],
     );
 
     return (
@@ -100,7 +102,7 @@ function DistanceRequestFooter({waypoints, transaction, navigateToWaypointEditPa
                 <View style={[styles.flexRow, styles.justifyContentCenter, styles.pt1]}>
                     <Button
                         small
-                        icon={Expensicons.Plus}
+                        icon={icons.Plus}
                         onPress={() => navigateToWaypointEditPage(Object.keys(transaction?.comment?.waypoints ?? {}).length)}
                         text={translate('distance.addStop')}
                         isDisabled={numberOfWaypoints === MAX_WAYPOINTS}

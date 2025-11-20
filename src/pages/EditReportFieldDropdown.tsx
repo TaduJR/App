@@ -1,10 +1,10 @@
 import React, {useCallback, useMemo} from 'react';
 import Icon from '@components/Icon';
-import * as Expensicons from '@components/Icon/Expensicons';
 import SelectionList from '@components/SelectionListWithSections';
 import RadioListItem from '@components/SelectionListWithSections/RadioListItem';
 import type {ListItem} from '@components/SelectionListWithSections/types';
 import useDebouncedState from '@hooks/useDebouncedState';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useTheme from '@hooks/useTheme';
@@ -31,6 +31,7 @@ function EditReportFieldDropdownPage({onSubmit, fieldKey, fieldValue, fieldOptio
     const [searchValue, debouncedSearchValue, setSearchValue] = useDebouncedState('');
     const theme = useTheme();
     const {translate, localeCompare} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Checkmark'] as const);
     const recentlyUsedOptions = useMemo(() => recentlyUsedReportFields?.[fieldKey]?.sort(localeCompare) ?? [], [recentlyUsedReportFields, fieldKey, localeCompare]);
 
     const itemRightSideComponent = useCallback(
@@ -38,7 +39,7 @@ function EditReportFieldDropdownPage({onSubmit, fieldKey, fieldValue, fieldOptio
             if (item.text === fieldValue) {
                 return (
                     <Icon
-                        src={Expensicons.Checkmark}
+                        src={icons.Checkmark}
                         fill={theme.iconSuccessFill}
                     />
                 );
@@ -46,7 +47,7 @@ function EditReportFieldDropdownPage({onSubmit, fieldKey, fieldValue, fieldOptio
 
             return null;
         },
-        [theme.iconSuccessFill, fieldValue],
+        [theme.iconSuccessFill, fieldValue, icons.Checkmark],
     );
 
     const [sections, headerMessage] = useMemo(() => {

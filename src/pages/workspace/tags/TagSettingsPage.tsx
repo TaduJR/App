@@ -10,6 +10,7 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import Switch from '@components/Switch';
 import Text from '@components/Text';
 import useEnvironment from '@hooks/useEnvironment';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import usePolicyData from '@hooks/usePolicyData';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -44,6 +45,7 @@ function TagSettingsPage({route, navigation}: TagSettingsPageProps) {
     const {orderWeight, policyID, tagName, backTo, parentTagsFilter} = route.params;
     const styles = useThemeStyles();
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan'] as const);
     const policyData = usePolicyData(policyID);
     const {policy, tags: policyTags} = policyData;
     const policyTag = useMemo(() => getTagListByOrderWeight(policyTags, orderWeight), [policyTags, orderWeight]);
@@ -240,7 +242,7 @@ function TagSettingsPage({route, navigation}: TagSettingsPageProps) {
 
                     {shouldShowDeleteMenuItem && (
                         <MenuItem
-                            icon={Expensicons.Trashcan}
+                            icon={icons.Trashcan}
                             title={translate('common.delete')}
                             onPress={() => {
                                 if (shouldPreventDisableOrDelete) {

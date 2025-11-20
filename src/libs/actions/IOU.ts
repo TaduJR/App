@@ -8,6 +8,7 @@ import {InteractionManager} from 'react-native';
 import type {NullishDeep, OnyxCollection, OnyxEntry, OnyxInputValue, OnyxUpdate} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';
 import type {PartialDeep, SetRequired, ValueOf} from 'type-fest';
+import CheckCircle from '@assets/images/check-circle.svg';
 import ReceiptGeneric from '@assets/images/receipt-generic.png';
 import type {PaymentMethod} from '@components/KYCWall/types';
 import type {SearchQueryJSON} from '@components/Search/types';
@@ -12775,7 +12776,7 @@ function shouldOptimisticallyUpdateSearch(
         return false;
     }
 
-    const suggestedSearches = getSuggestedSearches(userAccountID);
+    const suggestedSearches = getSuggestedSearches({CheckCircle}, userAccountID);
     const submitQueryJSON = suggestedSearches[CONST.SEARCH.SEARCH_KEYS.SUBMIT].searchQueryJSON;
     const approveQueryJSON = suggestedSearches[CONST.SEARCH.SEARCH_KEYS.APPROVE].searchQueryJSON;
 

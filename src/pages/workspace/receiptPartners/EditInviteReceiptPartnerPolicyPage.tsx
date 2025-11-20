@@ -3,7 +3,7 @@ import type {TupleToUnion, ValueOf} from 'type-fest';
 import Badge from '@components/Badge';
 import BlockingView from '@components/BlockingViews/BlockingView';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
-import * as Expensicons from '@components/Icon/Expensicons';
+import {FallbackAvatar} from '@components/Icon/Expensicons';
 import * as Illustrations from '@components/Icon/Illustrations';
 import PressableWithDelayToggle from '@components/Pressable/PressableWithDelayToggle';
 import ScreenWrapper from '@components/ScreenWrapper';
@@ -12,6 +12,7 @@ import type {ListItem} from '@components/SelectionListWithSections/types';
 import UserListItem from '@components/SelectionListWithSections/UserListItem';
 import TabSelector from '@components/TabSelector/TabSelector';
 import useDebouncedState from '@hooks/useDebouncedState';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -46,6 +47,7 @@ function EditInviteReceiptPartnerPolicyPage({route}: EditInviteReceiptPartnerPol
     const StyleUtils = useStyleUtils();
     const {translate, localeCompare} = useLocalize();
     const {isOffline} = useNetwork();
+    const icons = useMemoizedLazyExpensifyIcons(['Checkmark'] as const);
     const [countryCode = CONST.DEFAULT_COUNTRY_CODE] = useOnyx(ONYXKEYS.COUNTRY_CODE, {canBeMissing: false});
     const policyID = route.params.policyID;
     const policy = usePolicy(policyID);
@@ -153,7 +155,7 @@ function EditInviteReceiptPartnerPolicyPage({route}: EditInviteReceiptPartnerPol
                         onPress={() => inviteOrResend(email)}
                         styles={[...buttonStyles, isInvite ? styles.buttonSuccess : undefined]}
                         textStyles={[...buttonTextStyles, isInvite ? styles.buttonSuccessText : undefined]}
-                        iconChecked={Expensicons.Checkmark}
+                        iconChecked={icons.Checkmark}
                         inline={false}
                         accessible={false}
                     />
@@ -177,7 +179,7 @@ function EditInviteReceiptPartnerPolicyPage({route}: EditInviteReceiptPartnerPol
                 accountID: personalDetail?.accountID,
                 icons: [
                     {
-                        source: personalDetail?.avatar ?? Expensicons.FallbackAvatar,
+                        source: personalDetail?.avatar ?? FallbackAvatar,
                         name: formatPhoneNumber(email),
                         type: CONST.ICON_TYPE_AVATAR,
                         id: personalDetail?.accountID,
@@ -198,7 +200,7 @@ function EditInviteReceiptPartnerPolicyPage({route}: EditInviteReceiptPartnerPol
             list.push(optionWithErrorsAndRightElement as MemberForList & ListItem);
         }
         return sortAlphabetically(list, 'text', localeCompare);
-    }, [policy?.employeeList, styles, StyleUtils, localeCompare, isOffline, deriveStatus, uberEmployeesByEmail, translate, inviteOrResend]);
+    }, [policy?.employeeList, styles, StyleUtils, localeCompare, isOffline, deriveStatus, uberEmployeesByEmail, translate, inviteOrResend, icons.Checkmark]);
 
     const applyTabStatusFilter = useCallback(
         (tab: ReceiptPartnersTab, data: MemberForList[]) => {

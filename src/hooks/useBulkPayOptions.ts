@@ -20,6 +20,7 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {AccountData, Policy} from '@src/types/onyx';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
+import {useMemoizedLazyExpensifyIcons} from './useLazyAsset';
 import useLocalize from './useLocalize';
 import useOnyx from './useOnyx';
 import usePolicy from './usePolicy';
@@ -56,6 +57,7 @@ function useBulkPayOptions({
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const {accountID} = useCurrentUserPersonalDetails();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['CheckCircle'] as const);
     const [userWallet] = useOnyx(ONYXKEYS.USER_WALLET, {canBeMissing: true});
     const hasActivatedWallet = ([CONST.WALLET.TIER_NAME.GOLD, CONST.WALLET.TIER_NAME.PLATINUM] as string[]).includes(userWallet?.tierName ?? '');
     const [fundList] = useOnyx(ONYXKEYS.FUND_LIST, {canBeMissing: true});
@@ -128,7 +130,7 @@ function useBulkPayOptions({
 
     const bulkPayButtonOptions = useMemo(() => {
         const buttonOptions = [];
-        const paymentMethods = getSettlementButtonPaymentMethods(hasActivatedWallet, translate);
+        const paymentMethods = getSettlementButtonPaymentMethods(hasActivatedWallet, translate, {CheckCircle: lazyIcons.CheckCircle});
 
         if (!selectedReportID || !selectedPolicyID) {
             return undefined;
@@ -234,6 +236,7 @@ function useBulkPayOptions({
         chatReport,
         getPaymentSubitems,
         formattedAmount,
+        lazyIcons.CheckCircle,
     ]);
 
     return {

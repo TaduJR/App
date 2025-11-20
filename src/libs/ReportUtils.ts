@@ -2790,6 +2790,7 @@ function hasOutstandingChildRequest(chatReport: Report, iouReportOrID: OnyxEntry
 function getAddExpenseDropdownOptions(
     iouReportID: string | undefined,
     policy: OnyxEntry<Policy>,
+    icons: {Plus: IconAsset},
     iouRequestBackToReport?: string,
     unreportedExpenseBackToReport?: string,
     lastDistanceExpenseType?: IOURequestType,
@@ -2799,7 +2800,7 @@ function getAddExpenseDropdownOptions(
             value: CONST.REPORT.ADD_EXPENSE_OPTIONS.CREATE_NEW_EXPENSE,
             // eslint-disable-next-line @typescript-eslint/no-deprecated
             text: translateLocal('iou.createExpense'),
-            icon: Expensicons.Plus,
+            icon: icons.Plus,
             onSelected: () => {
                 if (!iouReportID) {
                     return;

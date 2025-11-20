@@ -3,6 +3,7 @@ import {Str} from 'expensify-common';
 import React, {useRef, useState} from 'react';
 import {View} from 'react-native';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -38,6 +39,7 @@ type AccountSwitcherProps = {
 };
 
 function AccountSwitcher({isScreenFocused}: AccountSwitcherProps) {
+    const icons = useMemoizedLazyExpensifyIcons(['Checkmark'] as const);
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const styles = useThemeStyles();
     const theme = useTheme();
@@ -121,7 +123,7 @@ function AccountSwitcher({isScreenFocused}: AccountSwitcherProps) {
     const menuItems = (): PopoverMenuItem[] => {
         const currentUserMenuItem = createBaseMenuItem(currentUserPersonalDetails, undefined, {
             shouldShowRightIcon: true,
-            iconRight: Expensicons.Checkmark,
+            iconRight: icons.Checkmark,
             success: true,
             isSelected: true,
         });

@@ -22,7 +22,7 @@ import ThreeDotsMenu from '@components/ThreeDotsMenu';
 import type ThreeDotsMenuProps from '@components/ThreeDotsMenu/types';
 import useEnvironment from '@hooks/useEnvironment';
 import useExpensifyCardFeeds from '@hooks/useExpensifyCardFeeds';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -92,6 +92,7 @@ function PolicyAccountingPage({policy}: PolicyAccountingPageProps) {
     const allCardSettings = useExpensifyCardFeeds(policyID);
     const isSyncInProgress = isConnectionInProgress(connectionSyncProgress, policy);
     const illustrations = useMemoizedLazyIllustrations(['Accounting'] as const);
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan', 'Send'] as const);
 
     const connectionNames = CONST.POLICY.CONNECTIONS.NAME;
     const accountingIntegrations = Object.values(connectionNames);
@@ -149,13 +150,13 @@ function PolicyAccountingPage({policy}: PolicyAccountingPageProps) {
                       },
                   ]),
             {
-                icon: Expensicons.Trashcan,
+                icon: icons.Trashcan,
                 text: translate('workspace.accounting.disconnect'),
                 onSelected: () => setIsDisconnectModalOpen(true),
                 shouldCallAfterModalHide: true,
             },
         ],
-        [shouldShowEnterCredentials, shouldShowReinstallConnectorMenuItem, translate, isOffline, policy, connectedIntegration, startIntegrationFlow],
+        [shouldShowEnterCredentials, shouldShowReinstallConnectorMenuItem, translate, isOffline, policy, connectedIntegration, startIntegrationFlow, icons.Trashcan],
     );
 
     useFocusEffect(
@@ -334,7 +335,7 @@ function PolicyAccountingPage({policy}: PolicyAccountingPageProps) {
                 pendingAction: settingsPendingAction(integrationData?.subscribedImportSettings, integrationData?.pendingFields),
             },
             {
-                icon: Expensicons.Send,
+                icon: icons.Send,
                 iconRight: Expensicons.ArrowRight,
                 shouldShowRightIcon: true,
                 title: translate('workspace.accounting.export'),
@@ -420,6 +421,7 @@ function PolicyAccountingPage({policy}: PolicyAccountingPageProps) {
         startIntegrationFlow,
         popoverAnchorRefs,
         datetimeToRelative,
+        icons.Send,
     ]);
 
     const otherIntegrationsItems = useMemo(() => {

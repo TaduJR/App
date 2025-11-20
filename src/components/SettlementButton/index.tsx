@@ -12,6 +12,7 @@ import {KYCWallContext} from '@components/KYCWall/KYCWallContext';
 import type {ContinueActionParams, PaymentMethod} from '@components/KYCWall/types';
 import {LockedAccountContext} from '@components/LockedAccountModalProvider';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -94,6 +95,7 @@ function SettlementButton({
 }: SettlementButtonProps) {
     const styles = useThemeStyles();
     const {translate, localeCompare} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['CheckCircle'] as const);
     const {isOffline} = useNetwork();
     const policy = usePolicy(policyID);
     const {accountID, email} = useCurrentUserPersonalDetails();
@@ -227,11 +229,11 @@ function SettlementButton({
 
     const paymentButtonOptions = useMemo(() => {
         const buttonOptions = [];
-        const paymentMethods = getSettlementButtonPaymentMethods(hasActivatedWallet, translate);
+        const paymentMethods = getSettlementButtonPaymentMethods(hasActivatedWallet, translate, {CheckCircle: icons.CheckCircle});
 
         const shortFormPayElsewhereButton = {
             text: translate('iou.pay'),
-            icon: Expensicons.CheckCircle,
+            icon: icons.CheckCircle,
             value: CONST.IOU.PAYMENT_TYPE.ELSEWHERE,
             shouldUpdateSelectedIndex: false,
         };

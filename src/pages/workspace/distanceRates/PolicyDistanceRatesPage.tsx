@@ -17,6 +17,7 @@ import type {ListItem} from '@components/SelectionListWithSections/types';
 import Switch from '@components/Switch';
 import Text from '@components/Text';
 import useFilteredSelection from '@hooks/useFilteredSelection';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useNetwork from '@hooks/useNetwork';
@@ -63,6 +64,7 @@ function PolicyDistanceRatesPage({
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const styles = useThemeStyles();
     const {translate, localeCompare} = useLocalize();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Trashcan', 'Close', 'Checkmark', 'Plus'] as const);
     const [isWarningModalVisible, setIsWarningModalVisible] = useState(false);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const policy = usePolicy(policyID);
@@ -356,7 +358,7 @@ function PolicyDistanceRatesPage({
             {
                 text: translate('workspace.distanceRates.deleteRates', {count: selectedDistanceRates.length}),
                 value: CONST.POLICY.BULK_ACTION_TYPES.DELETE,
-                icon: Expensicons.Trashcan,
+                icon: lazyIcons.Trashcan,
                 onSelected: () => (canDisableOrDeleteSelectedRates ? setIsDeleteModalVisible(true) : setIsWarningModalVisible(true)),
             },
         ];
@@ -366,7 +368,7 @@ function PolicyDistanceRatesPage({
             options.push({
                 text: translate('workspace.distanceRates.disableRates', {count: enabledRates.length}),
                 value: CONST.POLICY.BULK_ACTION_TYPES.DISABLE,
-                icon: Expensicons.Close,
+                icon: lazyIcons.Close,
                 onSelected: () => (canDisableOrDeleteSelectedRates ? disableRates() : setIsWarningModalVisible(true)),
             });
         }
@@ -376,7 +378,7 @@ function PolicyDistanceRatesPage({
             options.push({
                 text: translate('workspace.distanceRates.enableRates', {count: disabledRates.length}),
                 value: CONST.POLICY.BULK_ACTION_TYPES.ENABLE,
-                icon: Expensicons.Checkmark,
+                icon: lazyIcons.Checkmark,
                 onSelected: enableRates,
             });
         }
@@ -406,7 +408,7 @@ function PolicyDistanceRatesPage({
                         text={translate('workspace.distanceRates.addRate')}
                         onPress={addRate}
                         style={[shouldUseNarrowLayout && styles.flex1]}
-                        icon={Expensicons.Plus}
+                        icon={lazyIcons.Plus}
                         success
                     />
                     <ButtonWithDropdownMenu

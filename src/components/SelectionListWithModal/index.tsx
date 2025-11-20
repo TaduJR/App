@@ -1,12 +1,12 @@
 import {useIsFocused} from '@react-navigation/native';
 import type {ForwardedRef} from 'react';
 import React, {forwardRef, useMemo, useState} from 'react';
-import {CheckSquare} from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import Modal from '@components/Modal';
 import SelectionList from '@components/SelectionListWithSections';
 import type {ListItem, SelectionListHandle, SelectionListProps} from '@components/SelectionListWithSections/types';
 import useHandleSelectionMode from '@hooks/useHandleSelectionMode';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -35,6 +35,7 @@ function SelectionListWithModal<TItem extends ListItem>(
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [longPressedItem, setLongPressedItem] = useState<TItem | null>(null);
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['CheckSquare'] as const);
     // We need to use isSmallScreenWidth instead of shouldUseNarrowLayout here because there is a race condition that causes shouldUseNarrowLayout to change indefinitely in this component
     // See https://github.com/Expensify/App/issues/48675 for more details
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
@@ -106,7 +107,7 @@ function SelectionListWithModal<TItem extends ListItem>(
             >
                 <MenuItem
                     title={translate('common.select')}
-                    icon={CheckSquare}
+                    icon={icons.CheckSquare}
                     onPress={turnOnSelectionMode}
                     pressableTestID={CONST.SELECTION_LIST_WITH_MODAL_TEST_ID}
                 />

@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {InteractionManager} from 'react-native';
 import ConfirmModal from '@components/ConfirmModal';
 import * as Expensicons from '@components/Icon/Expensicons';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -29,6 +30,7 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
 
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
+    const icons = useMemoizedLazyExpensifyIcons(['Trashcan'] as const);
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {canBeMissing: true});
     const [transactionMain] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`, {canBeMissing: true});
@@ -186,7 +188,7 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
             const hasOnlyEReceipt = hasEReceipt(transaction) && !hasReceiptSource(transaction);
             if (shouldShowDeleteReceiptButton && !hasOnlyEReceipt && hasReceipt(transaction) && !isReceiptBeingScanned(transaction) && !hasMissingSmartscanFields(transaction)) {
                 menuItems.push({
-                    icon: Expensicons.Trashcan,
+                    icon: icons.Trashcan,
                     text: translate('receipt.deleteReceipt'),
                     onSelected: () => setIsDeleteReceiptConfirmModalVisible?.(true),
                     shouldCallAfterModalHide: true,
@@ -207,6 +209,7 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
             iouType,
             report?.reportID,
             onDownloadAttachment,
+            icons.Trashcan,
         ],
     );
 

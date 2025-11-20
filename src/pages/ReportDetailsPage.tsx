@@ -28,6 +28,7 @@ import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails'
 import useDeleteTransactions from '@hooks/useDeleteTransactions';
 import useDuplicateTransactionsAndViolations from '@hooks/useDuplicateTransactionsAndViolations';
 import useGetIOUReportFromReportAction from '@hooks/useGetIOUReportFromReportAction';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -154,6 +155,7 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
     const {isOffline} = useNetwork();
     const {isRestrictedToPreferredPolicy, preferredPolicyID} = usePreferredPolicy();
     const styles = useThemeStyles();
+    const lazyIcons = useMemoizedLazyExpensifyIcons(['Send', 'Checkmark', 'Trashcan', 'Pin', 'QrCode'] as const);
     const backTo = route.params.backTo;
 
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report.parentReportID}`, {canBeMissing: true});
@@ -427,7 +429,7 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
             items.push({
                 key: CONST.REPORT_DETAILS_MENU_ITEM.TRACK.SUBMIT,
                 translationKey: 'actionableMentionTrackExpense.submit',
-                icon: Expensicons.Send,
+                icon: lazyIcons.Send,
                 isAnonymousAction: false,
                 shouldShowRightIcon: true,
                 action: () => {
@@ -484,7 +486,7 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
             if (isCompletedTaskReport(report) && isTaskActionable) {
                 items.push({
                     key: CONST.REPORT_DETAILS_MENU_ITEM.MARK_AS_INCOMPLETE,
-                    icon: Expensicons.Checkmark,
+                    icon: lazyIcons.Checkmark,
                     translationKey: 'task.markAsIncomplete',
                     isAnonymousAction: false,
                     action: callFunctionIfActionIsAllowed(() => {
@@ -580,6 +582,8 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
         isRestrictedToPreferredPolicy,
         preferredPolicyID,
         introSelected,
+        lazyIcons.Send,
+        lazyIcons.Checkmark,
     ]);
 
     const displayNamesWithTooltips = useMemo(() => {
@@ -674,13 +678,13 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
         }
 
         if (report) {
-            result.push(PromotedActions.pin(report));
+            result.push(PromotedActions.pin(report, {Pin: lazyIcons.Pin}));
         }
 
-        result.push(PromotedActions.share(report, backTo));
+        result.push(PromotedActions.share(report, {QrCode: lazyIcons.QrCode}, backTo));
 
         return result;
-    }, [canJoin, report, backTo]);
+    }, [canJoin, report, backTo, lazyIcons.Pin, lazyIcons.QrCode]);
 
     const nameSectionExpenseIOU = (
         <View style={[styles.reportDetailsRoomInfo, styles.mw100]}>
@@ -990,7 +994,7 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
                     {shouldShowDeleteButton && (
                         <MenuItem
                             key={CONST.REPORT_DETAILS_MENU_ITEM.DELETE}
-                            icon={Expensicons.Trashcan}
+                            icon={lazyIcons.Trashcan}
                             title={caseID === CASES.DEFAULT ? translate('common.delete') : translate('reportActionContextMenu.deleteAction', {action: requestParentReportAction})}
                             onPress={() => setIsDeleteModalVisible(true)}
                         />

@@ -22,7 +22,7 @@ import Section from '@components/Section';
 import Text from '@components/Text';
 import TextLink from '@components/TextLink';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePrivateSubscription from '@hooks/usePrivateSubscription';
@@ -67,6 +67,7 @@ function SecuritySettingsPage() {
     const privateSubscription = usePrivateSubscription();
     const isUserValidated = account?.validated;
     const delegateButtonRef = useRef<HTMLDivElement | null>(null);
+    const icons = useMemoizedLazyExpensifyIcons(['ClosedSign', 'Trashcan'] as const);
 
     const [shouldShowDelegatePopoverMenu, setShouldShowDelegatePopoverMenu] = useState(false);
     const [shouldShowRemoveDelegateModal, setShouldShowRemoveDelegateModal] = useState(false);
@@ -182,7 +183,7 @@ function SecuritySettingsPage() {
 
         baseMenuItems.push({
             translationKey: 'closeAccountPage.closeAccount',
-            icon: Expensicons.ClosedSign,
+            icon: icons.ClosedSign,
             action: () => {
                 if (isDelegateAccessRestricted) {
                     showDelegateNoAccessModal();
@@ -216,6 +217,7 @@ function SecuritySettingsPage() {
         waitForNavigate,
         translate,
         styles.sectionMenuItemTopDescription,
+        icons.ClosedSign,
     ]);
 
     const delegateMenuItems: MenuItemProps[] = useMemo(
@@ -311,7 +313,7 @@ function SecuritySettingsPage() {
         },
         {
             text: translate('delegate.removeCopilot'),
-            icon: Expensicons.Trashcan,
+            icon: icons.Trashcan,
             onPress: () => {
                 if (isDelegateAccessRestricted) {
                     modalClose(() => showDelegateNoAccessModal());

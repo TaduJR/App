@@ -4,10 +4,10 @@ import {View} from 'react-native';
 import AttachmentView from '@components/Attachments/AttachmentView';
 import type {Attachment} from '@components/Attachments/types';
 import Button from '@components/Button';
-import * as Expensicons from '@components/Icon/Expensicons';
 import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeedback';
 import SafeAreaConsumer from '@components/SafeAreaConsumer';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -34,6 +34,7 @@ type CarouselItemProps = {
 };
 
 function CarouselItem({item, onPress, isFocused, isModalHovered, reportID}: CarouselItemProps) {
+    const icons = useMemoizedLazyExpensifyIcons(['AttachmentNotFound'] as const);
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {isAttachmentHidden} = useContext(AttachmentModalContext);
@@ -93,7 +94,7 @@ function CarouselItem({item, onPress, isFocused, isModalHovered, reportID}: Caro
                     isHovered={isModalHovered}
                     isFocused={isFocused}
                     duration={item.duration}
-                    fallbackSource={Expensicons.AttachmentNotFound}
+                    fallbackSource={icons.AttachmentNotFound}
                     reportID={reportID}
                     isUploaded={!isEmptyObject(report)}
                 />

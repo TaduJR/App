@@ -2,10 +2,10 @@ import React, {useRef} from 'react';
 import {View} from 'react-native';
 import {getButtonRole} from '@components/Button/utils';
 import Icon from '@components/Icon';
-import * as Expensicons from '@components/Icon/Expensicons';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
 import useHover from '@hooks/useHover';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import {useMouseContext} from '@hooks/useMouseContext';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useSyncFocus from '@hooks/useSyncFocus';
@@ -46,6 +46,7 @@ function BaseListItem<TItem extends ListItem>({
     const theme = useTheme();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
+    const icons = useMemoizedLazyExpensifyIcons(['Checkmark', 'DotIndicator'] as const);
     const {hovered, bind} = useHover();
     const {isMouseDownOnInput, setMouseUp} = useMouseContext();
 
@@ -138,7 +139,7 @@ function BaseListItem<TItem extends ListItem>({
                         >
                             <View>
                                 <Icon
-                                    src={Expensicons.Checkmark}
+                                    src={icons.Checkmark}
                                     fill={theme.success}
                                 />
                             </View>
@@ -148,7 +149,7 @@ function BaseListItem<TItem extends ListItem>({
                         <View style={[styles.alignItemsCenter, styles.justifyContentCenter]}>
                             <Icon
                                 testID={CONST.DOT_INDICATOR_TEST_ID}
-                                src={Expensicons.DotIndicator}
+                                src={icons.DotIndicator}
                                 fill={item.brickRoadIndicator === CONST.BRICK_ROAD_INDICATOR_STATUS.INFO ? theme.iconSuccessFill : theme.danger}
                             />
                         </View>

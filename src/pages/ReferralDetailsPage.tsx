@@ -6,6 +6,7 @@ import * as Expensicons from '@components/Icon/Expensicons';
 import {PaymentHands} from '@components/Icon/Illustrations';
 import MenuItem from '@components/MenuItem';
 import Text from '@components/Text';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useSingleExecution from '@hooks/useSingleExecution';
@@ -31,6 +32,7 @@ function ReferralDetailsPage({route}: ReferralDetailsPageProps) {
     const [account] = useOnyx(ONYXKEYS.ACCOUNT);
     const popoverAnchor = useRef(null);
     const {isExecuting, singleExecution} = useSingleExecution();
+    const icons = useMemoizedLazyExpensifyIcons(['Copy', 'Checkmark'] as const);
     let {contentType} = route.params;
     const {backTo} = route.params;
 
@@ -72,8 +74,8 @@ function ReferralDetailsPage({route}: ReferralDetailsPageProps) {
                 <ContextMenuItem
                     isAnonymousAction
                     text={translate('referralProgram.copyReferralLink')}
-                    icon={Expensicons.Copy}
-                    successIcon={Expensicons.Checkmark}
+                    icon={icons.Copy}
+                    successIcon={icons.Checkmark}
                     successText={translate('qrCodes.copied')}
                     onPress={() => Clipboard.setString(referralLink)}
                 />

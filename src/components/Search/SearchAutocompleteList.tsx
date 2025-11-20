@@ -186,7 +186,7 @@ function SearchAutocompleteList({
     const [nvpDismissedProductTraining] = useOnyx(ONYXKEYS.NVP_DISMISSED_PRODUCT_TRAINING, {canBeMissing: true});
     const [recentSearches] = useOnyx(ONYXKEYS.RECENT_SEARCHES, {canBeMissing: true});
     const [countryCode] = useOnyx(ONYXKEYS.COUNTRY_CODE, {canBeMissing: false});
-    const expensifyIcons = useMemoizedLazyExpensifyIcons(['History', 'MagnifyingGlass'] as const);
+    const icons = useMemoizedLazyExpensifyIcons(['History', 'MagnifyingGlass'] as const);
 
     const {options, areOptionsInitialized} = useOptionsList();
     const searchOptions = useMemo(() => {
@@ -625,7 +625,7 @@ function SearchAutocompleteList({
         const searchQueryJSON = buildSearchQueryJSON(query);
         return {
             text: searchQueryJSON ? buildUserReadableQueryString(searchQueryJSON, personalDetails, reports, taxRates, allCards, allFeeds, policies, currentUserAccountID) : query,
-            singleIcon: expensifyIcons.History,
+            singleIcon: icons.History,
             searchQuery: query,
             keyForList: timestamp,
             searchItemType: CONST.SEARCH.SEARCH_ROUTER_ITEM_TYPE.SEARCH,
@@ -786,7 +786,7 @@ function SearchAutocompleteList({
             return {
                 text: getAutocompleteDisplayText(filterKey, text),
                 mapKey: mapKey ? getSubstitutionMapKey(mapKey, text) : undefined,
-                singleIcon: expensifyIcons.MagnifyingGlass,
+                singleIcon: icons.MagnifyingGlass,
                 searchQuery: text,
                 autocompleteID,
                 keyForList: autocompleteID ?? text, // in case we have a unique identifier then use it because text might not be unique

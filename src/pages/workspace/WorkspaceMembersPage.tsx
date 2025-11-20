@@ -9,7 +9,7 @@ import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import type {DropdownOption, WorkspaceMemberBulkActionType} from '@components/ButtonWithDropdownMenu/types';
 import ConfirmModal from '@components/ConfirmModal';
 import DecisionModal from '@components/DecisionModal';
-import {Download, FallbackAvatar, MakeAdmin, Plus, RemoveMembers, Table, User, UserEye} from '@components/Icon/Expensicons';
+import {Download, FallbackAvatar, MakeAdmin, RemoveMembers, Table, User, UserEye} from '@components/Icon/Expensicons';
 import {LockedAccountContext} from '@components/LockedAccountModalProvider';
 import MessagesRow from '@components/MessagesRow';
 import SearchBar from '@components/SearchBar';
@@ -20,7 +20,7 @@ import type {ListItem, SelectionListHandle} from '@components/SelectionListWithS
 import Text from '@components/Text';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useFilteredSelection from '@hooks/useFilteredSelection';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useNetwork from '@hooks/useNetwork';
@@ -130,6 +130,7 @@ function WorkspaceMembersPage({personalDetails, route, policy}: WorkspaceMembers
     const isFocused = useIsFocused();
     const policyID = route.params.policyID;
     const illustrations = useMemoizedLazyIllustrations(['ReceiptWrangler'] as const);
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
 
     const ownerDetails = personalDetails?.[policy?.ownerAccountID ?? CONST.DEFAULT_NUMBER_ID] ?? ({} as PersonalDetails);
     const {approvalWorkflows} = useMemo(
@@ -619,7 +620,7 @@ function WorkspaceMembersPage({personalDetails, route, policy}: WorkspaceMembers
                     success
                     onPress={inviteUser}
                     text={translate('workspace.invite.member')}
-                    icon={Plus}
+                    icon={icons.Plus}
                     innerStyles={[shouldUseNarrowLayout && styles.alignItemsCenter]}
                     style={[shouldUseNarrowLayout && styles.flexGrow1, shouldUseNarrowLayout && styles.mb3]}
                 />

@@ -2,9 +2,8 @@ import React, {useCallback, useMemo} from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import Button from '@components/Button';
-import {Close} from '@components/Icon/Expensicons';
 import useDismissedUberBanners from '@hooks/useDismissedUberBanners';
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import {useMemoizedLazyExpensifyIcons, useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import usePermissions from '@hooks/usePermissions';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -28,6 +27,7 @@ function WorkspaceReceiptPartnersPromotionBanner({policy, readOnly}: WorkspaceRe
     const StyleUtils = useStyleUtils();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const {isBetaEnabled} = usePermissions();
+    const icons = useMemoizedLazyExpensifyIcons(['Close'] as const);
     const policyID = policy?.id;
     const {setAsDismissed, isDismissed} = useDismissedUberBanners({policyID});
     const shouldDismissBanner = !!policy?.receiptPartners?.enabled || !isBetaEnabled(CONST.BETAS.UBER_FOR_BUSINESS) || isDismissed || readOnly;
@@ -70,7 +70,7 @@ function WorkspaceReceiptPartnersPromotionBanner({policy, readOnly}: WorkspaceRe
                 subtitleStyle={[styles.mt1, styles.textLabel]}
                 style={[styles.borderRadiusComponentLarge]}
                 rightComponent={rightComponent}
-                rightIcon={Close}
+                rightIcon={icons.Close}
                 rightIconAccessibilityLabel={translate('common.close')}
                 onRightIconPress={setAsDismissed}
             />

@@ -19,6 +19,7 @@ import Text from '@components/Text';
 import useCardFeeds from '@hooks/useCardFeeds';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useExpensifyCardFeeds from '@hooks/useExpensifyCardFeeds';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
@@ -77,6 +78,7 @@ function WorkspaceMemberDetailsPage({personalDetails, policy, route}: WorkspaceM
     const StyleUtils = useStyleUtils();
     const illustrations = useThemeIllustrations();
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
+    const icons = useMemoizedLazyExpensifyIcons(['Plus'] as const);
     const [cardFeeds] = useCardFeeds(policyID);
     const [cardList] = useOnyx(`${ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST}`, {canBeMissing: true});
     const [customCardNames] = useOnyx(ONYXKEYS.NVP_EXPENSIFY_COMPANY_CARDS_CUSTOM_NAMES, {canBeMissing: true});
@@ -503,7 +505,7 @@ function WorkspaceMemberDetailsPage({personalDetails, policy, route}: WorkspaceM
                                     })}
                                     <MenuItem
                                         title={translate('workspace.expensifyCard.newCard')}
-                                        icon={Expensicons.Plus}
+                                        icon={icons.Plus}
                                         onPress={handleIssueNewCard}
                                     />
                                 </>
