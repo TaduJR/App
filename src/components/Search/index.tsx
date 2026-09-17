@@ -101,6 +101,7 @@ import ChatSearchView from './ChatSearchView';
 import ExpenseFlatSearchView from './ExpenseFlatSearchView';
 import ExpenseGroupedSearchView from './ExpenseGroupedSearchView';
 import ExpenseReportSearchView from './ExpenseReportSearchView';
+import useLiveSearchPaging from './hooks/useLiveSearchPaging';
 import useSearchSnapshot from './hooks/useSearchSnapshot';
 import SearchChartView from './SearchChartView';
 import SearchChartWrapper from './SearchChartWrapper';
@@ -157,7 +158,7 @@ function Search({
     const {setShouldResetSearchQuery} = useSearchQueryActions();
     const {setShouldShowFiltersBarLoading} = useSearchResultsActions();
     const {clearSelectedTransactions} = useSearchSelectionActions();
-    const {areAllMatchingItemsSelected} = useSearchSelectionContext();
+    const {areAllMatchingItemsSelected, selectedTransactions} = useSearchSelectionContext();
     const [offset, setOffset] = useState(0);
 
     const [transactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION);
@@ -193,7 +194,8 @@ function Search({
     const isExpenseAllMatchingSelection = type === CONST.SEARCH.DATA_TYPES.EXPENSE && areAllMatchingItemsSelected;
     const isAllMatchingItemsCountMissing = isExpenseAllMatchingSelection && typeof searchResults?.search?.count !== 'number';
     const shouldCalculateExpenseTotals = useSearchShouldCalculateTotals(currentSearchKey, offset === 0 || isAllMatchingItemsCountMissing, isExpenseAllMatchingSelection);
-    const shouldCalculateTotals = (areAllMatchingItemsSelected && !isExpenseAllMatchingSelection) || shouldCalculateExpenseTotals;
+    const shouldCalculateAllMatchingTotals = areAllMatchingItemsSelected && !isExpenseAllMatchingSelection;
+    const shouldCalculateTotals = shouldCalculateAllMatchingTotals || shouldCalculateExpenseTotals;
     const previousShouldCalculateTotals = usePrevious(shouldCalculateTotals);
     const searchRequestOffset = getSearchRequestOffsetForMissingAllMatchingCount(offset, searchResults?.search?.offset, isAllMatchingItemsCountMissing);
     // For an expense-report "select all matching", the total the bulk-actions button waits for is the server
@@ -260,12 +262,13 @@ function Search({
         reportActions,
         previousReportActions,
         shouldUseLiveData,
+        areAllMatchingItemsSelected,
     });
 
     const {
-        data: stableSortedData,
+        data: deviceRows,
         chartData: sortedData,
-        filteredData,
+        filteredData: deviceFilteredData,
         filteredDataLength,
         allDataLength,
         hasDeletedTransaction,
@@ -287,6 +290,24 @@ function Search({
         transactions,
         reportActions,
     });
+
+    const livePaging = useLiveSearchPaging({
+        queryJSON,
+        searchKey: currentSearchKey,
+        isLiveSearch: shouldUseLiveData,
+        hasMoreServerResults: !!searchResults?.search?.hasMoreResults,
+        isOffline,
+        isFocused,
+        shouldCalculateTotalsOnFirstPage: shouldCalculateTotals,
+        shouldCalculateTotalsOnLaterPages: shouldCalculateAllMatchingTotals,
+        areRowsDeferred: shouldDeferHeavySearchWork,
+        deviceRows,
+        deviceFilteredData,
+        selectedTransactions,
+    });
+    const {visibleRows: stableSortedData, visibleFilteredData: filteredData} = livePaging;
+    // A to-do search pages through the hook and never moves `offset`.
+    const currentPageOffset = shouldUseLiveData ? livePaging.lastPageOffset : offset;
 
     // Mirror `hasQueuedHighlights` into a ref so the post-create-flow `useFocusEffect`
     // (which has empty deps) can read the latest value without re-creating its callback.
@@ -393,7 +414,7 @@ function Search({
     const shouldShowLoadingState = isDeferringHeavyWork || isWaitingForInitialData;
     const shouldShowRowSkeleton = (!skeletonWasDisplayed || shouldShowLoadingState) && showPendingExpensePlaceholder && !hasErrors;
 
-    const shouldShowLoadingMoreItems = !shouldShowLoadingState && searchResults?.search?.isLoading && searchResults?.search?.offset > 0;
+    const shouldShowLoadingMoreItems = shouldUseLiveData ? livePaging.isLoadingMore : !shouldShowLoadingState && searchResults?.search?.isLoading && searchResults?.search?.offset > 0;
 
     const prevIsSearchResultEmpty = usePrevious(isSearchResultsEmpty);
 
@@ -440,6 +461,11 @@ function Search({
             return;
         }
 
+        // A to-do search's pages, including the first, come from useLiveSearchPaging.
+        if (shouldUseLiveData) {
+            return;
+        }
+
         if (searchResults?.search?.isLoading) {
             if (validGroupBy || (shouldCalculateTotals && isRequiredAllMatchingTotalMissing)) {
                 shouldRetrySearchWithTotalsOrGroupedRef.current = true;
@@ -480,7 +506,7 @@ function Search({
 
         // We don't need to run the effect on change of isFocused.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [handleSearch, hasErrors, isOffline, offset, queryJSON, shouldCalculateTotals, validGroupBy, searchRequestOffset]);
+    }, [handleSearch, hasErrors, isOffline, offset, queryJSON, shouldCalculateTotals, shouldUseLiveData, validGroupBy, searchRequestOffset]);
 
     useEffect(() => {
         if (!shouldRetrySearchWithTotalsOrGroupedRef.current || searchResults?.search?.isLoading || (!shouldCalculateTotals && !validGroupBy)) {
@@ -694,7 +720,7 @@ function Search({
                 // in the report RHP can reference the correct result set.
                 saveLastSearchParams({
                     queryJSON,
-                    offset,
+                    offset: currentPageOffset,
                     searchKey: currentSearchKey,
                     hasMoreResults: !!searchResults?.search?.hasMoreResults,
                     allowPostSearchRecount: true,
@@ -763,7 +789,7 @@ function Search({
             email,
             accountID,
             queryJSON,
-            offset,
+            currentPageOffset,
             searchResults?.search?.hasMoreResults,
             currentSearchKey,
             getCurrencyDecimals,
@@ -787,7 +813,7 @@ function Search({
     // If columns have changed, trigger an animation before settings columnsToShow to prevent
     // new columns appearing before the fade out animation happens
     useEffect(() => {
-        if (previousColumns === currentColumns || offset === 0 || isSmallScreenWidth) {
+        if (previousColumns === currentColumns || currentPageOffset === 0 || isSmallScreenWidth) {
             setColumnsToShow(currentColumns);
             return;
         }
@@ -798,7 +824,7 @@ function Search({
                 opacity.set(withTiming(1, {duration: CONST.SEARCH.ANIMATION.FADE_DURATION}));
             }),
         );
-    }, [previousColumns, currentColumns, setColumnsToShow, opacity, offset, isSmallScreenWidth]);
+    }, [previousColumns, currentColumns, setColumnsToShow, opacity, currentPageOffset, isSmallScreenWidth]);
 
     const isChat = type === CONST.SEARCH.DATA_TYPES.CHAT;
     const isTask = type === CONST.SEARCH.DATA_TYPES.TASK;
@@ -878,6 +904,11 @@ function Search({
     // Ask again for a page that never arrived, either because a search was still running when the list hit
     // its end or because a first-page response replaced it. Both leave the request with nothing to retry it.
     useEffect(() => {
+        // A to-do search's pages are the hook's, and a first-page answer can't replace its Onyx rows.
+        if (shouldUseLiveData) {
+            return;
+        }
+
         const serverOffset = searchResults?.search?.offset ?? 0;
         // A first-page response that lands after the page it displaces drags the cursor back below the page we
         // hold, after that page's arrival already cleared the intent. The list has not moved, so arm it again.
@@ -896,7 +927,7 @@ function Search({
         }
 
         fetchMoreResults();
-    }, [fetchMoreResults, offset, searchResults?.search?.hasMoreResults, searchResults?.search?.isLoading, searchResults?.search?.offset]);
+    }, [fetchMoreResults, offset, shouldUseLiveData, searchResults?.search?.hasMoreResults, searchResults?.search?.isLoading, searchResults?.search?.offset]);
 
     const onLayoutBase = useCallback(() => {
         hasHadFirstLayout.current = true;
@@ -1289,7 +1320,7 @@ function Search({
         contentContainerStyle: [styles.pb3, contentContainerStyle],
         containerStyle: [styles.pv0],
         onScroll: onSearchListScroll,
-        onEndReached: fetchMoreResults,
+        onEndReached: shouldUseLiveData ? livePaging.loadMoreRows : fetchMoreResults,
         ListFooterComponent: listFooterComponent,
         onLayout,
         isMobileSelectionModeEnabled,

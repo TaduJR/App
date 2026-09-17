@@ -4,8 +4,12 @@ import ComposeProviders from '@components/ComposeProviders';
 import FullScreenBlockingViewContextProvider from '@components/FullScreenBlockingViewContextProvider';
 import {LocaleContextProvider} from '@components/LocaleContextProvider';
 import OnyxListItemProvider from '@components/OnyxListItemProvider';
+import type * as SearchContext from '@components/Search/SearchContext';
 import {SearchContextProvider} from '@components/Search/SearchContextProvider';
+import type {SearchListItem} from '@components/Search/SearchList/ListItem/types';
 import SearchLoadingSkeleton from '@components/Search/SearchLoadingSkeleton';
+import type * as SearchWriteActionsProviderModule from '@components/Search/SearchWriteActionsProvider';
+import type {SearchData, SearchSelectionActionsValue, SelectedTransactionInfo} from '@components/Search/types';
 import {PlaybackContextProvider} from '@components/VideoPlayerContexts/PlaybackContext';
 
 import useNetwork from '@hooks/useNetwork';
@@ -20,6 +24,7 @@ import createPlatformStackNavigator from '@libs/Navigation/PlatformStackNavigati
 import Animations from '@libs/Navigation/PlatformStackNavigation/navigationOptions/animation';
 import type {SearchFullscreenNavigatorParamList} from '@libs/Navigation/types';
 import * as SearchQueryUtils from '@libs/SearchQueryUtils';
+import {getSuggestedSearches} from '@libs/SearchUIUtils';
 
 import EmptySearchView from '@pages/Search/EmptySearchView';
 import SearchPage from '@pages/Search/SearchPage';
@@ -28,16 +33,19 @@ import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
 import SCREENS from '@src/SCREENS';
+import type {Policy, Report, Transaction} from '@src/types/onyx';
 import type SearchResults from '@src/types/onyx/SearchResults';
 
 import type * as CoreNavigation from '@react-navigation/core';
 import type * as reactNavigationNativeImport from '@react-navigation/native';
+import type React from 'react';
 
 import {PortalProvider} from '@gorhom/portal';
 import {NavigationContainer} from '@react-navigation/native';
 import Onyx from 'react-native-onyx';
 
 import createMock from '../utils/createMock';
+import getOnyxValue from '../utils/getOnyxValue';
 
 registerMiddlewares();
 
@@ -75,15 +83,43 @@ jest.mock('@react-navigation/core', () => ({
     useNavigation: jest.fn(() => ({getState: jest.fn(() => undefined), isFocused: jest.fn(() => true)})),
 }));
 
-// FlashList never lays out here, so stand in for it to get at onEndReached.
-const listProps: {onEndReached?: () => void} = {};
+type ListProps = {onEndReached?: () => void; onSelectRow?: (item: SearchListItem) => void};
+
+// Captures the list's handlers, since FlashList never lays out in tests.
+const listProps: ListProps = {};
 jest.mock('@components/Search/SearchList/BaseSearchList', () => ({
     __esModule: true,
-    default: (props: {onEndReached?: () => void}) => {
+    default: (props: ListProps) => {
         listProps.onEndReached = props.onEndReached;
+        listProps.onSelectRow = props.onSelectRow;
         return null;
     },
 }));
+
+type WriteActionsRender = {
+    filteredData: SearchData;
+    applySelection: SearchSelectionActionsValue['applySelection'];
+    selectAllMatchingItems: SearchSelectionActionsValue['selectAllMatchingItems'];
+};
+type WriteActionsProviderProps = Parameters<typeof SearchWriteActionsProviderModule.default>[0];
+
+// The rows <Search> hands this provider are the rows selection can reach.
+const mockRenderWriteActions = jest.fn<void, [WriteActionsRender]>();
+jest.mock('@components/Search/SearchWriteActionsProvider', () => {
+    const {createElement} = jest.requireActual<typeof React>('react');
+    const {useSearchSelectionActions} = jest.requireActual<typeof SearchContext>('@components/Search/SearchContext');
+    const {default: SearchWriteActionsProvider} = jest.requireActual<typeof SearchWriteActionsProviderModule>('@components/Search/SearchWriteActionsProvider');
+    function MockSearchWriteActionsProvider(props: WriteActionsProviderProps) {
+        const {applySelection, selectAllMatchingItems} = useSearchSelectionActions();
+        mockRenderWriteActions({filteredData: props.filteredData, applySelection, selectAllMatchingItems});
+        return createElement(SearchWriteActionsProvider, props);
+    }
+    return {__esModule: true, default: MockSearchWriteActionsProvider};
+});
+
+function lastWriteActionsRender() {
+    return mockRenderWriteActions.mock.lastCall?.[0];
+}
 
 const mockIsFocused = jest.fn(() => true);
 jest.mock('@react-navigation/native', () => ({
@@ -261,6 +297,7 @@ describe('SearchPageNarrow', () => {
         mockSearchQueryParam.mockReturnValue(FAILED_QUERY);
         mockIsFocused.mockReturnValue(true);
         listProps.onEndReached = undefined;
+        listProps.onSelectRow = undefined;
     });
 
     it('SearchPageNarrow renders correctly', async () => {
@@ -625,5 +662,185 @@ describe('SearchPageNarrow', () => {
         });
 
         expect(wasSearchedAtNextPage()).toBe(true);
+    });
+
+    describe('a to-do search, which reads live Onyx rows instead of the snapshot', () => {
+        const TODO_EMAIL = 'submitter@expensify.com';
+        const TODO_POLICY_ID = 'todoPolicy';
+        // Without a CurrentUserPersonalDetailsProvider, the screen builds its suggested searches for this ID.
+        const TODO_ACCOUNT_ID = CONST.DEFAULT_NUMBER_ID;
+        // From the screen's own builder, since a hand-written query hashes differently and isn't a to-do search.
+        const TODO_QUERY = getSuggestedSearches(TODO_ACCOUNT_ID, undefined, false, undefined)[CONST.SEARCH.SEARCH_KEYS.SUBMIT].searchQuery;
+        const todoQueryJSON = SearchQueryUtils.buildSearchQueryJSON(TODO_QUERY);
+
+        // An open expense report with no expenses is a Submit to-do.
+        const buildTodoReport = (index: number) =>
+            createMock<Report>({
+                reportID: `todo_${index}`,
+                chatReportID: `chat_todo_${index}`,
+                policyID: TODO_POLICY_ID,
+                ownerAccountID: TODO_ACCOUNT_ID,
+                stateNum: CONST.REPORT.STATE_NUM.OPEN,
+                statusNum: CONST.REPORT.STATUS_NUM.OPEN,
+                type: CONST.REPORT.TYPE.EXPENSE,
+                reportName: 'Draft report',
+                currency: 'USD',
+                total: 0,
+            });
+
+        const seedTodoReports = async (count: number) => {
+            await act(async () => {
+                await Onyx.set(ONYXKEYS.SESSION, {accountID: TODO_ACCOUNT_ID, email: TODO_EMAIL});
+                await Onyx.set(
+                    `${ONYXKEYS.COLLECTION.POLICY}${TODO_POLICY_ID}`,
+                    createMock<Policy>({id: TODO_POLICY_ID, name: 'Todo policy', type: CONST.POLICY.TYPE.TEAM, role: CONST.POLICY.ROLE.USER, owner: TODO_EMAIL, outputCurrency: 'USD'}),
+                );
+                // An empty draft only counts once transactions have loaded, and an untouched collection never loads.
+                await Onyx.set(`${ONYXKEYS.COLLECTION.TRANSACTION}unrelated`, createMock<Transaction>({transactionID: 'unrelated', reportID: 'not_a_todo', amount: -1, currency: 'USD'}));
+                await Promise.all(Array.from({length: count}, (_value, index) => Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}todo_${index + 1}`, buildTodoReport(index + 1))));
+            });
+            mockSearchQueryParam.mockReturnValue(TODO_QUERY);
+        };
+
+        const seedTodoSnapshot = (hasMoreResults: boolean) =>
+            act(async () => {
+                await Onyx.set(`${ONYXKEYS.COLLECTION.SNAPSHOT}${todoQueryJSON?.hash}`, {
+                    search: {
+                        type: CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT,
+                        offset: 0,
+                        hash: todoQueryJSON?.hash,
+                        isLoading: false,
+                        hasMoreResults,
+                    },
+                });
+            });
+
+        it('asks for its first page exactly once', async () => {
+            await seedTodoReports(3);
+
+            renderPage(TODO_QUERY);
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+
+            expect(mockSearch).toHaveBeenCalledTimes(1);
+            expect(mockSearch).toHaveBeenCalledWith(expect.objectContaining({offset: 0, searchKey: CONST.SEARCH.SEARCH_KEYS.SUBMIT, shouldCalculateTotals: true}));
+        });
+
+        it('asks the server for the next page when the list reaches its end', async () => {
+            await seedTodoReports(3);
+            await seedTodoSnapshot(true);
+
+            renderPage(TODO_QUERY);
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+            mockSearch.mockClear();
+
+            await act(async () => {
+                listProps.onEndReached?.();
+            });
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+
+            expect(mockSearch).toHaveBeenCalledWith(expect.objectContaining({offset: CONST.SEARCH.RESULTS_PAGE_SIZE, shouldCalculateTotals: false}));
+        });
+
+        it('renders a selected report the cap would cut off, so selection only holds rows the user can see', async () => {
+            const rowCount = CONST.SEARCH.RESULTS_PAGE_SIZE + 10;
+            await seedTodoReports(rowCount);
+            await seedTodoSnapshot(true);
+
+            renderPage(TODO_QUERY);
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+
+            const renderedKeys = new Set(lastWriteActionsRender()?.filteredData.map((row) => row.keyForList));
+            expect(renderedKeys.size).toBe(CONST.SEARCH.RESULTS_PAGE_SIZE);
+            const cutOffKey = Array.from({length: rowCount}, (_value, index) => `todo_${index + 1}`).find((key) => !renderedKeys.has(key)) ?? '';
+
+            await act(async () => {
+                lastWriteActionsRender()?.applySelection(() => ({[cutOffKey]: createMock<SelectedTransactionInfo>({isSelected: true})}));
+            });
+
+            expect(lastWriteActionsRender()?.filteredData.map((row) => row.keyForList)).toContain(cutOffKey);
+        });
+
+        it('asks for its first page again, with totals, when an expense it does not show yet arrives while every matching report is selected', async () => {
+            await seedTodoReports(3);
+            await seedTodoSnapshot(true);
+
+            renderPage(TODO_QUERY);
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+            await act(async () => {
+                lastWriteActionsRender()?.selectAllMatchingItems(true);
+            });
+            mockSearch.mockClear();
+
+            await act(async () => {
+                await Onyx.set(`${ONYXKEYS.COLLECTION.TRANSACTION}newExpense`, createMock<Transaction>({transactionID: 'newExpense', reportID: 'not_a_todo', amount: -100, currency: 'USD'}));
+            });
+
+            expect(mockSearch).toHaveBeenCalledWith(expect.objectContaining({offset: 0, shouldCalculateTotals: true}));
+        });
+
+        it('saves the last page it has for report navigation to page on from', async () => {
+            await seedTodoReports(CONST.SEARCH.RESULTS_PAGE_SIZE + 10);
+            await seedTodoSnapshot(true);
+
+            renderPage(TODO_QUERY);
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+            await act(async () => {
+                listProps.onEndReached?.();
+            });
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+
+            const report = lastWriteActionsRender()?.filteredData.at(0);
+            await act(async () => {
+                if (!report) {
+                    return;
+                }
+                listProps.onSelectRow?.(report);
+            });
+
+            expect(await getOnyxValue(ONYXKEYS.REPORT_NAVIGATION_LAST_SEARCH_QUERY)).toEqual(expect.objectContaining({offset: CONST.SEARCH.RESULTS_PAGE_SIZE}));
+        });
+
+        it('shows the next rows once the server answers their page, not before', async () => {
+            const rowCount = CONST.SEARCH.RESULTS_PAGE_SIZE + 20;
+            await seedTodoReports(rowCount);
+            await seedTodoSnapshot(true);
+
+            renderPage(TODO_QUERY);
+            await act(async () => {
+                jest.advanceTimersByTime(0);
+            });
+            let answerNextPage: (jsonCode: number) => void = () => {};
+            mockSearch.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    answerNextPage = resolve;
+                }),
+            );
+
+            await act(async () => {
+                listProps.onEndReached?.();
+            });
+
+            expect(lastWriteActionsRender()?.filteredData).toHaveLength(CONST.SEARCH.RESULTS_PAGE_SIZE);
+
+            await act(async () => {
+                answerNextPage(CONST.JSON_CODE.SUCCESS);
+            });
+
+            expect(lastWriteActionsRender()?.filteredData).toHaveLength(rowCount);
+        });
     });
 });

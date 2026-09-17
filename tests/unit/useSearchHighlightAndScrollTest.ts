@@ -46,6 +46,7 @@ describe('useSearchHighlightAndScroll', () => {
 
     const baseProps: UseSearchHighlightAndScroll = {
         shouldUseLiveData: false,
+        areAllMatchingItemsSelected: false,
         searchResults: {
             data: {
                 personalDetailsList: {},
@@ -109,6 +110,78 @@ describe('useSearchHighlightAndScroll', () => {
 
         rerender(updatedProps);
         expect(search).toHaveBeenCalledWith({queryJSON: baseProps.queryJSON, searchKey: undefined, offset: 0, shouldCalculateTotals: false, isLoading: false});
+    });
+
+    it('should not trigger search on a to-do tab, whose rows and total are already live', () => {
+        mockUseIsFocused.mockReturnValue(true);
+        const initialProps = createMock<UseSearchHighlightAndScroll>({
+            ...baseProps,
+            shouldUseLiveData: true,
+            transactions: {transactions_1: {transactionID: '1'}},
+            previousTransactions: {transactions_1: {transactionID: '1'}},
+        });
+
+        const {rerender} = renderHook((props: UseSearchHighlightAndScroll) => useSearchHighlightAndScroll(props), {
+            initialProps,
+        });
+
+        const updatedProps = createMock<UseSearchHighlightAndScroll>({
+            ...baseProps,
+            shouldUseLiveData: true,
+            transactions: {
+                transactions_1: {transactionID: '1'},
+                transactions_2: {transactionID: '2'},
+            },
+            previousTransactions: {transactions_1: {transactionID: '1'}},
+        });
+
+        rerender(updatedProps);
+        expect(search).not.toHaveBeenCalled();
+    });
+
+    it('should trigger search on a to-do tab while every matching item is selected, since the selection label reads the server report count', () => {
+        mockUseIsFocused.mockReturnValue(true);
+        const initialProps = createMock<UseSearchHighlightAndScroll>({
+            ...baseProps,
+            shouldUseLiveData: true,
+            areAllMatchingItemsSelected: true,
+            shouldCalculateTotals: true,
+            transactions: {transactions_1: {transactionID: '1'}},
+            previousTransactions: {transactions_1: {transactionID: '1'}},
+        });
+
+        const {rerender} = renderHook((props: UseSearchHighlightAndScroll) => useSearchHighlightAndScroll(props), {
+            initialProps,
+        });
+
+        rerender(
+            createMock<UseSearchHighlightAndScroll>({
+                ...initialProps,
+                transactions: {
+                    transactions_1: {transactionID: '1'},
+                    transactions_2: {transactionID: '2'},
+                },
+            }),
+        );
+
+        expect(search).toHaveBeenCalledWith(expect.objectContaining({offset: 0, shouldCalculateTotals: true}));
+
+        rerender(
+            createMock<UseSearchHighlightAndScroll>({
+                ...initialProps,
+                transactions: {
+                    transactions_1: {transactionID: '1'},
+                    transactions_2: {transactionID: '2'},
+                    transactions_3: {transactionID: '3'},
+                },
+                previousTransactions: {
+                    transactions_1: {transactionID: '1'},
+                    transactions_2: {transactionID: '2'},
+                },
+            }),
+        );
+
+        expect(search).toHaveBeenCalledTimes(2);
     });
 
     it('should not trigger search when not focused', () => {

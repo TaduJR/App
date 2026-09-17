@@ -33,6 +33,7 @@ type UseSearchHighlightAndScroll = {
     offset: number;
     shouldCalculateTotals: boolean;
     shouldUseLiveData: boolean;
+    areAllMatchingItemsSelected: boolean;
 };
 
 /**
@@ -49,6 +50,7 @@ function useSearchHighlightAndScroll({
     offset,
     shouldCalculateTotals,
     shouldUseLiveData,
+    areAllMatchingItemsSelected,
 }: UseSearchHighlightAndScroll) {
     const isFocused = useIsFocused();
     const {isOffline} = useNetwork();
@@ -161,15 +163,19 @@ function useSearchHighlightAndScroll({
             // Set the flag indicating the search is triggered by the hook
             triggeredByHookRef.current = true;
 
-            // Trigger the search
-            TransitionTracker.runAfterTransitions({
-                callback: () => {
-                    search({queryJSON, searchKey, offset, shouldCalculateTotals, isLoading: !!searchResults?.search?.isLoading});
-                },
-            });
+            // A to-do search's rows and footer totals are live, so there only "Select all matching" needs this, for the server's report count.
+            if (!shouldUseLiveData || areAllMatchingItemsSelected) {
+                TransitionTracker.runAfterTransitions({
+                    callback: () => {
+                        search({queryJSON, searchKey, offset, shouldCalculateTotals, isLoading: !!searchResults?.search?.isLoading});
+                    },
+                });
+            }
 
-            // Set the ref to prevent further triggers until reset
-            searchTriggeredRef.current = true;
+            // Set the ref to prevent further triggers until reset. Not on a to-do search, where an expense outside its rows would never reset it.
+            if (!shouldUseLiveData) {
+                searchTriggeredRef.current = true;
+            }
         }
     }, [
         isFocused,
@@ -185,6 +191,8 @@ function useSearchHighlightAndScroll({
         searchResultsData,
         isOffline,
         searchResults?.search?.isLoading,
+        shouldUseLiveData,
+        areAllMatchingItemsSelected,
     ]);
 
     useEffect(() => {
