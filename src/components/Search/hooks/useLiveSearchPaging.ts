@@ -3,7 +3,7 @@ import type {SearchData, SearchQueryJSON, SelectedTransactions} from '@component
 
 import {search} from '@libs/actions/Search';
 import Log from '@libs/Log';
-import type {SearchKey} from '@libs/SearchUIUtils';
+import type {SearchKey} from '@libs/SearchKeyUtils';
 import {isTransactionGroupListItemType} from '@libs/SearchUIUtils';
 
 import CONST from '@src/CONST';
