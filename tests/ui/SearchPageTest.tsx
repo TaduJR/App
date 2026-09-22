@@ -749,18 +749,22 @@ describe('SearchPageNarrow', () => {
             });
 
         it('asks for its first page exactly once', async () => {
+            // Given a to-do tab, whose rows come from Onyx rather than from the snapshot
             await seedTodoReports(3);
 
+            // When the screen mounts
             renderPage(TODO_QUERY);
             await act(async () => {
                 jest.advanceTimersByTime(0);
             });
 
+            // Then one request goes out, and with totals, because the hook owns every page here and the page-level fetch skips to-do tabs
             expect(mockSearch).toHaveBeenCalledTimes(1);
             expect(mockSearch).toHaveBeenCalledWith(expect.objectContaining({offset: 0, searchKey: CONST.SEARCH.SEARCH_KEYS.SUBMIT, shouldCalculateTotals: true}));
         });
 
         it('asks the server for the next page when the list reaches its end', async () => {
+            // Given a to-do tab whose first page has answered, on a server that still has more rows
             await seedTodoReports(3);
             await seedTodoSnapshot(true);
 
@@ -770,6 +774,7 @@ describe('SearchPageNarrow', () => {
             });
             mockSearch.mockClear();
 
+            // When the user reaches the end of the list
             await act(async () => {
                 listProps.onEndReached?.();
             });
@@ -777,10 +782,12 @@ describe('SearchPageNarrow', () => {
                 jest.advanceTimersByTime(0);
             });
 
+            // Then the page after the one it holds is asked for, without totals, which only the first page needs
             expect(mockSearch).toHaveBeenCalledWith(expect.objectContaining({offset: CONST.SEARCH.RESULTS_PAGE_SIZE, shouldCalculateTotals: false}));
         });
 
         it('renders a selected report the cap would cut off, so selection only holds rows the user can see', async () => {
+            // Given a to-do tab holding more reports than one page, so the cap cuts the rest off
             const rowCount = CONST.SEARCH.RESULTS_PAGE_SIZE + 10;
             await seedTodoReports(rowCount);
             await seedTodoSnapshot(true);
@@ -794,14 +801,17 @@ describe('SearchPageNarrow', () => {
             expect(renderedKeys.size).toBe(CONST.SEARCH.RESULTS_PAGE_SIZE);
             const cutOffKey = Array.from({length: rowCount}, (_value, index) => `todo_${index + 1}`).find((key) => !renderedKeys.has(key)) ?? '';
 
+            // When a report below the cap is ticked, which a bulk action or a restored selection can do
             await act(async () => {
                 lastWriteActionsRender()?.applySelection(() => ({[cutOffKey]: createMock<SelectedTransactionInfo>({isSelected: true})}));
             });
 
+            // Then the list renders down to that report, because the selection sync drops any ticked row it cannot see
             expect(lastWriteActionsRender()?.filteredData.map((row) => row.keyForList)).toContain(cutOffKey);
         });
 
         it('asks for its first page again, with totals, when an expense it does not show yet arrives while every matching report is selected', async () => {
+            // Given a to-do tab with every matching report selected, where the bulk-action button's count comes from the server
             await seedTodoReports(3);
             await seedTodoSnapshot(true);
 
@@ -814,14 +824,17 @@ describe('SearchPageNarrow', () => {
             });
             mockSearch.mockClear();
 
+            // When an expense arrives that the rows don't show
             await act(async () => {
                 await Onyx.set(`${ONYXKEYS.COLLECTION.TRANSACTION}newExpense`, createMock<Transaction>({transactionID: 'newExpense', reportID: 'not_a_todo', amount: -100, currency: 'USD'}));
             });
 
+            // Then the first page is asked for again with totals, so the count on the button follows the new expense
             expect(mockSearch).toHaveBeenCalledWith(expect.objectContaining({offset: 0, shouldCalculateTotals: true}));
         });
 
         it('saves the last page it has for report navigation to page on from', async () => {
+            // Given a to-do tab that has paged once, so the hook holds a later page than the snapshot's own offset
             await seedTodoReports(CONST.SEARCH.RESULTS_PAGE_SIZE + 10);
             await seedTodoSnapshot(true);
 
@@ -836,6 +849,7 @@ describe('SearchPageNarrow', () => {
                 jest.advanceTimersByTime(0);
             });
 
+            // When a report is opened from the list
             const report = lastWriteActionsRender()?.filteredData.at(0);
             await act(async () => {
                 if (!report) {
@@ -844,10 +858,12 @@ describe('SearchPageNarrow', () => {
                 listProps.onSelectRow?.(report);
             });
 
+            // Then the hook's page is saved, so the report's next arrow pages on from there instead of walking pages the list already has
             expect(await getOnyxValue(ONYXKEYS.REPORT_NAVIGATION_LAST_SEARCH_QUERY)).toEqual(expect.objectContaining({offset: CONST.SEARCH.RESULTS_PAGE_SIZE}));
         });
 
         it('shows the next rows once the server answers their page, not before', async () => {
+            // Given a to-do tab holding more device rows than one page, with the next page held unanswered
             const rowCount = CONST.SEARCH.RESULTS_PAGE_SIZE + 20;
             await seedTodoReports(rowCount);
             await seedTodoSnapshot(true);
@@ -863,16 +879,20 @@ describe('SearchPageNarrow', () => {
                 }),
             );
 
+            // When the user reaches the end of the list
             await act(async () => {
                 listProps.onEndReached?.();
             });
 
+            // Then the rows stay at one page, because a to-do tab waits for its page like every other search does
             expect(lastWriteActionsRender()?.filteredData).toHaveLength(CONST.SEARCH.RESULTS_PAGE_SIZE);
 
+            // When the page answers
             await act(async () => {
                 answerNextPage(CONST.JSON_CODE.SUCCESS);
             });
 
+            // Then the rows it covers appear
             expect(lastWriteActionsRender()?.filteredData).toHaveLength(rowCount);
         });
     });

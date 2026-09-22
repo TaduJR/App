@@ -13,7 +13,7 @@ import {useEffect, useEffectEvent, useRef, useState} from 'react';
 
 /**
  * Paging for a to-do search, whose rows come from Onyx: how many of the device's rows render, and which server page is
- * still owed. Online, rows wait for their page, as on any other search. The hook keeps its own cursor because the
+ * still owed. Rows wait for their page, offline included, as on any other search. The hook keeps its own cursor because the
  * snapshot's `offset` and `isLoading` are shared by every caller of `search()`. `hasMoreResults` is shared too, so
  * another caller's answer can cost an extra page.
  */
@@ -39,7 +39,7 @@ type LiveSearchPagingParams = {
     /** Whether Search holds its rows back while the screen settles, which leaves the list empty. */
     areRowsDeferred: boolean;
 
-    /** Every row the search matches on the device, in render order. */
+    /** In the order they render. */
     deviceRows: SearchListItem[];
 
     deviceFilteredData: SearchData;
@@ -73,7 +73,7 @@ const PAGE_SIZE: number = CONST.SEARCH.RESULTS_PAGE_SIZE;
 function getRowCountKeepingRowsInView(rows: SearchListItem[], rowLimit: number, selectedTransactions: SelectedTransactions, isRowShown: (row: SearchListItem) => boolean): number {
     const hasSelection = !isEmptyObject(selectedTransactions);
     const isKeySelected = (key: string) => !!selectedTransactions[key]?.isSelected;
-    // A report counts as selected through its expenses, as the page checkbox counts it.
+    // Matches how the page checkbox counts a report as selected.
     const isRowSelected = (row: SearchListItem) =>
         isKeySelected(row.keyForList) || (isTransactionGroupListItemType(row) && row.transactions.some((transaction) => isKeySelected(transaction.keyForList)));
     let shownRowCount = 0;
@@ -132,7 +132,7 @@ function useLiveSearchPaging({
     const [wasOffline, setWasOffline] = useState(isOffline);
     const [wasFocused, setWasFocused] = useState(isFocused);
     const [didLaterPagesNeedTotals, setDidLaterPagesNeedTotals] = useState(shouldCalculateTotalsOnLaterPages);
-    // Skipped for snapshot searches, since each update here renders all of Search again.
+    // Each update here renders all of Search again.
     if (isLiveSearch && (wasOffline !== isOffline || wasFocused !== isFocused || didLaterPagesNeedTotals !== shouldCalculateTotalsOnLaterPages)) {
         setWasOffline(isOffline);
         setWasFocused(isFocused);
@@ -151,20 +151,18 @@ function useLiveSearchPaging({
     // Until a page answers, `hasMoreServerResults` may be stale.
     const hasLoadedAnyPage = nextPageToFetch > 0;
     const canServerHaveMore = hasMoreServerResults || !hasLoadedAnyPage;
-    // A kept row or an offline session can show rows the server wasn't asked for.
     const isAheadOfServer = requested.rows > requested.serverRows;
-    const canShowDeviceRows = isOffline || isRetryBlocked || isAheadOfServer;
-    const pagedRows = canShowDeviceRows ? requested.rows : Math.min(requested.rows, Math.max(PAGE_SIZE, nextPageToFetch));
+    const pagedRows = isAheadOfServer ? requested.rows : Math.min(requested.rows, Math.max(PAGE_SIZE, nextPageToFetch));
 
     // Offline, a row being deleted still shows, struck through.
     const isRowShown = (row: SearchListItem) => isOffline || row.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE;
     const shownRowCount = isLiveSearch ? deviceRows.filter(isRowShown).length : deviceRows.length;
-    // With nothing left to page, every row shows, so select all reaches them all.
+    // Once nothing is left to page, every row shows, so a bulk action can't miss one.
     const targetRows = canServerHaveMore ? pagedRows : shownRowCount;
-    // Selection only holds rendered rows, and a new expense is scrolled to only once rendered.
+    // A ticked row that stops rendering loses its tick, and a new expense is scrolled to only once rendered.
     const rowsInView = isLiveSearch ? getRowCountKeepingRowsInView(deviceRows, targetRows, selectedTransactions, isRowShown) : targetRows;
 
-    // Never shrinks, so rows don't vanish when a tick clears, a highlight ends or the connection returns.
+    // So rows don't vanish when a tick clears or a highlight ends.
     const [renderedRows, setRenderedRows] = useState(rowsInView);
     const [previousRowsInView, setPreviousRowsInView] = useState(rowsInView);
     if (previousRowsInView !== rowsInView) {
@@ -178,7 +176,7 @@ function useLiveSearchPaging({
     // A to-do search lists expense reports only.
     const visibleFilteredData = isRowLimitApplied ? visibleRows.filter(isTransactionGroupListItemType) : deviceFilteredData;
 
-    // Rows the device lacks are fetched page by page from the cursor, since skipping an offset page can skip reports. Deferred rows only look missing.
+    // Skipping an offset page can skip reports, so the cursor walks them in order. Deferred rows only look missing.
     const isDeviceShort = !areRowsDeferred && shownRowCount < requested.rows;
     const serverRowsOwed = isDeviceShort ? Math.max(requested.serverRows, requested.rows) : requested.serverRows;
     const isPageOwed = isLiveSearch && nextPageToFetch < serverRowsOwed && canServerHaveMore && !isRetryBlocked;
@@ -252,7 +250,8 @@ function useLiveSearchPaging({
         if (!shouldGrow) {
             return;
         }
-        const serverRows = isOffline ? requested.serverRows : Math.max(requested.serverRows, nextPageToFetch) + PAGE_SIZE;
+        // Owed even offline, so the page the user reached the end for goes out on reconnect.
+        const serverRows = Math.max(requested.serverRows, nextPageToFetch) + PAGE_SIZE;
         setRequested({rows: askedRows + PAGE_SIZE, serverRows});
     }
 

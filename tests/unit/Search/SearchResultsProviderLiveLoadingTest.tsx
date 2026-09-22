@@ -42,16 +42,22 @@ function renderProvider(snapshotSearch: Record<string, unknown>) {
 
 describe('SearchResultsProvider for a live to-do search', () => {
     it('reports no loading even when a reload left the snapshot loading its first page', () => {
+        // Given a snapshot saved to disk while its first page was still running, which a reload leaves behind
+        // When the provider builds the live results from it
         const {result} = renderProvider({isLoading: true, offset: 0, hash: 1});
 
+        // Then the flag is reported as false, because nothing would clear a stale one and the tab would never page again
         expect(result.current.shouldUseLiveData).toBe(true);
         expect(result.current.currentSearchResults?.search.isLoading).toBe(false);
         expect(result.current.currentSearchResults?.search.offset).toBe(0);
     });
 
     it('still reports live results when the snapshot has none, so the empty state wins over a skeleton', () => {
+        // Given a to-do search whose device rows are empty and whose snapshot holds no results
+        // When the provider builds the live results
         const {result} = renderProvider({isLoading: false, offset: 0, hash: 1});
 
+        // Then it still returns a results object, so the screen shows the empty state rather than a blocking skeleton
         expect(result.current.currentSearchResults?.search.hasResults).toBe(false);
         expect(result.current.currentSearchResults?.data).toEqual({});
     });

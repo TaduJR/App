@@ -113,6 +113,7 @@ describe('useSearchHighlightAndScroll', () => {
     });
 
     it('should not trigger search on a to-do tab, whose rows and total are already live', () => {
+        // Given a focused to-do tab, where the rows and the footer total are built from Onyx rather than the snapshot
         mockUseIsFocused.mockReturnValue(true);
         const initialProps = createMock<UseSearchHighlightAndScroll>({
             ...baseProps,
@@ -125,6 +126,7 @@ describe('useSearchHighlightAndScroll', () => {
             initialProps,
         });
 
+        // When a new expense arrives
         const updatedProps = createMock<UseSearchHighlightAndScroll>({
             ...baseProps,
             shouldUseLiveData: true,
@@ -136,10 +138,13 @@ describe('useSearchHighlightAndScroll', () => {
         });
 
         rerender(updatedProps);
+
+        // Then no request goes out, because a full page costs seconds and would tell the tab nothing it doesn't already show
         expect(search).not.toHaveBeenCalled();
     });
 
     it('should trigger search on a to-do tab while every matching item is selected, since the selection label reads the server report count', () => {
+        // Given a focused to-do tab with every matching report selected, where the button's count comes from the server
         mockUseIsFocused.mockReturnValue(true);
         const initialProps = createMock<UseSearchHighlightAndScroll>({
             ...baseProps,
@@ -154,6 +159,7 @@ describe('useSearchHighlightAndScroll', () => {
             initialProps,
         });
 
+        // When an expense arrives that the rows don't show yet
         rerender(
             createMock<UseSearchHighlightAndScroll>({
                 ...initialProps,
@@ -164,8 +170,10 @@ describe('useSearchHighlightAndScroll', () => {
             }),
         );
 
+        // Then the first page is asked for again with totals, so the count the button shows follows the new expense
         expect(search).toHaveBeenCalledWith(expect.objectContaining({offset: 0, shouldCalculateTotals: true}));
 
+        // When a second expense arrives
         rerender(
             createMock<UseSearchHighlightAndScroll>({
                 ...initialProps,
@@ -181,6 +189,7 @@ describe('useSearchHighlightAndScroll', () => {
             }),
         );
 
+        // Then it asks again, because the ref that would swallow the second request is never set on a to-do tab
         expect(search).toHaveBeenCalledTimes(2);
     });
 
