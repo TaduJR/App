@@ -1726,21 +1726,41 @@ describe('useLiveSearchPaging', () => {
             expect(requestedOffsets()).toEqual([PAGE]);
         });
 
-        it('stops waiting for a page that never settles once a second end of the list asks for it', async () => {
-            // Given a snapshot left mid-request by a reload, which nothing will ever answer
+        it('stops waiting for a page that never settles once an end of the list asks for it', async () => {
+            // Given a snapshot left mid-request by a reload, which nothing will ever answer and no second end can outlast
             await givenSharedPage({offset: PAGE, isInFlight: true});
             const {result} = renderPaging(withDeviceRows(PAGE * 5));
             await flushPromises();
-
-            // When the user reaches the end of the list twice, with the rows growing in between so both ends count
-            act(() => result.current.loadMoreRows());
-            await flushPromises();
             expect(mockedSearch).not.toHaveBeenCalled();
+
+            // When the user reaches the end of the list
             act(() => result.current.loadMoreRows());
             await flushPromises();
 
             // Then the hook sends that page itself, rather than leaving the list shut for the rest of the mount
             expect(requestedOffsets()).toEqual([PAGE]);
+        });
+
+        it('waits again when the page it took over turns out to be running after all', async () => {
+            // Given a page another caller has out, which this hook takes over at the end of the list
+            await givenSharedPage({offset: PAGE, isInFlight: true});
+            mockedSearch.mockReturnValueOnce(Promise.resolve(undefined));
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+
+            // Then `search()` drops it as a duplicate, which the snapshot still showing that page out tells apart from a failure
+            expect(requestedOffsets()).toEqual([PAGE]);
+
+            // When the page that was running answers
+            await givenSharedPage({offset: PAGE});
+            await flushPromises();
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+
+            // Then its rows count as this hook's own, so the end of the list asks for the page after it rather than for it again
+            expect(requestedOffsets()).toEqual([PAGE, PAGE * 2]);
         });
 
         it('ignores the shared cursor once it has asked for a page of its own', async () => {

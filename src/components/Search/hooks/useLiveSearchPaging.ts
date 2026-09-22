@@ -200,7 +200,8 @@ function useLiveSearchPaging({
     // A page another caller is running answers into the same rows, so its result is taken as if this hook had sent it.
     if (isLiveSearch && adoptedOffset !== undefined && !sharedPage?.isInFlight) {
         setAdoptedOffset(undefined);
-        if (sharedPage?.didFail) {
+        // A snapshot that has gone away says as little about the page as a failure does, so both are asked again.
+        if (!sharedPage || sharedPage.didFail) {
             setIsRetryBlocked(true);
         } else {
             setHasAnsweredSinceMount(true);
@@ -238,7 +239,7 @@ function useLiveSearchPaging({
     const isAheadOfServer = requested.rows > requested.serverRows;
     const pagedRows = isAheadOfServer ? requested.rows : Math.min(requested.rows, Math.max(PAGE_SIZE, nextPageToFetch));
 
-    // Offline, a row being deleted still shows, struck through.
+    // Counted as Search counts the rows it calls visible: a row being deleted counts only while offline.
     const isRowShown = (row: SearchListItem) => isOffline || row.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE;
     const shownRowCount = isLiveSearch ? deviceRows.filter(isRowShown).length : deviceRows.length;
     // Once nothing is left to page, every row shows, so a bulk action can't miss one.
@@ -254,6 +255,7 @@ function useLiveSearchPaging({
         setRenderedRows((rows) => Math.max(rows, rowsInView));
     }
     const rowLimit = Math.max(renderedRows, rowsInView);
+    const renderedRowCount = Math.min(rowLimit, shownRowCount);
 
     const isRowLimitApplied = isLiveSearch && shownRowCount > rowLimit;
     const visibleRows = isRowLimitApplied ? getLeadingRows(deviceRows, rowLimit, isRowShown) : deviceRows;
@@ -268,7 +270,8 @@ function useLiveSearchPaging({
     const isRequestInFlightRef = useRef(false);
     const lastCountedEndRef = useRef<number | undefined>(undefined);
     const pagingEpochRef = useRef(pagingEpoch);
-    const adoptedEndsRef = useRef(0);
+    // A render behind, so a page settling in the same tick as its answer can read as still running, or the reverse. Both
+    // cost at most one end of the list: an adopted page is taken over, and a page read as failed is retried.
     const sharedPageRef = useRef(sharedPage);
     useEffect(() => {
         sharedPageRef.current = sharedPage;
@@ -345,22 +348,19 @@ function useLiveSearchPaging({
             return;
         }
 
-        // A page left out by a reload never settles, so it is waited for until a second end says the user still is.
+        // A page left out by a reload never settles, so an end of the list takes it over. One that is really running is
+        // dropped as a duplicate by `search()` and adopted again by the answer handler, at the cost of one call.
         if (isAdoptedPageInFlight) {
-            if (adoptedEndsRef.current > 0) {
-                setAdoptedOffset(undefined);
-            }
-            adoptedEndsRef.current += 1;
+            setAdoptedOffset(undefined);
         }
 
         // FlashList reports an end for every new rows array, so an end counts only once the rendered rows change.
-        const renderedRowCount = Math.min(rowLimit, shownRowCount);
         if (renderedRowCount === lastCountedEndRef.current) {
             return;
         }
         // From what is on screen, so a list widened by a kept row still grows at its end.
         const askedRows = Math.max(requested.rows, rowLimit);
-        const isRequestCovered = Math.min(shownRowCount, rowLimit) >= askedRows || (!isRetryBlocked && nextPageToFetch + PAGE_SIZE >= askedRows);
+        const isRequestCovered = renderedRowCount >= askedRows || (!isRetryBlocked && nextPageToFetch + PAGE_SIZE >= askedRows);
         const canShowMore = shownRowCount > askedRows || canServerHaveMore;
         const shouldGrow = isRequestCovered && canShowMore;
         // Not remembered, so the same rows count again once the server has more.
@@ -382,7 +382,7 @@ function useLiveSearchPaging({
         visibleFilteredData,
         loadMoreRows,
         // No footer before an end of the list, since the first rows render at once.
-        isLoadingMore: isPageOwed && isFocused && !isOffline && !areRowsDeferred && requested.rows > PAGE_SIZE && requested.rows > Math.min(rowLimit, shownRowCount),
+        isLoadingMore: isPageOwed && isFocused && !isOffline && !areRowsDeferred && requested.rows > PAGE_SIZE && requested.rows > renderedRowCount,
         lastPageOffset,
     };
 }
