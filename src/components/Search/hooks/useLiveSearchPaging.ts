@@ -182,7 +182,7 @@ function useLiveSearchPaging({
     const isPageOwed = isLiveSearch && nextPageToFetch < serverRowsOwed && canServerHaveMore && !isRetryBlocked;
     const lastPageOffset = Math.max(0, nextPageToFetch - PAGE_SIZE);
     const isRequestInFlightRef = useRef(false);
-    const lastCountedEndRef = useRef<{renderedRowCount: number; wasRetry: boolean} | undefined>(undefined);
+    const lastCountedEndRef = useRef<number | undefined>(undefined);
 
     // Answers merge with `Math.max`, so a late answer, or one landing while the list is hidden, never undoes a newer one.
     const requestPage = useEffectEvent((offset: number) => {
@@ -193,6 +193,8 @@ function useLiveSearchPaging({
             isRequestInFlightRef.current = false;
             // `search()` also returns nothing when a delete drops the page or the same page is already in flight, and both count as failed.
             if (jsonCode !== CONST.JSON_CODE.SUCCESS) {
+                // Forgotten, so the next end of the list retries the page, which the rows alone could never ask for again.
+                lastCountedEndRef.current = undefined;
                 setIsRetryBlocked(true);
                 return;
             }
@@ -200,10 +202,10 @@ function useLiveSearchPaging({
             setNextPageToFetch((page) => Math.max(page, offset + PAGE_SIZE));
         };
         // Inside a promise, so a `search()` that throws counts as a failed page instead of escaping the Effect.
+        isRequestInFlightRef.current = true;
         const request = new Promise<string | number | undefined>((resolve) => {
             resolve(search({queryJSON, searchKey, offset, shouldCalculateTotals, isLoading: false}));
         });
-        isRequestInFlightRef.current = true;
         request.then(recordAnswer, (error: unknown) => {
             Log.hmmm('[Search] A to-do page request threw', {error: String(error)});
             recordAnswer(undefined);
@@ -230,10 +232,9 @@ function useLiveSearchPaging({
         }
 
         const wasRetryBlocked = isRetryBlocked;
-        // FlashList reports an end for every new rows array, so an end counts only once the rendered rows change, and a failed page is retried once per set of rows.
+        // FlashList reports an end for every new rows array, so an end counts only once the rendered rows change.
         const renderedRowCount = Math.min(rowLimit, shownRowCount);
-        const lastCountedEnd = lastCountedEndRef.current;
-        if (renderedRowCount === lastCountedEnd?.renderedRowCount && (!wasRetryBlocked || lastCountedEnd.wasRetry)) {
+        if (renderedRowCount === lastCountedEndRef.current) {
             return;
         }
         // From what is on screen, so a list widened by a kept row still grows at its end.
@@ -245,7 +246,7 @@ function useLiveSearchPaging({
         if (!shouldGrow && !wasRetryBlocked) {
             return;
         }
-        lastCountedEndRef.current = {renderedRowCount, wasRetry: wasRetryBlocked};
+        lastCountedEndRef.current = renderedRowCount;
         setIsRetryBlocked(false);
         if (!shouldGrow) {
             return;

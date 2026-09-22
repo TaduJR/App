@@ -1302,32 +1302,31 @@ describe('useLiveSearchPaging', () => {
             expect(requestedOffsets()).toEqual([PAGE]);
         });
 
-        it('is asked for again at one end of the list, not at every end on the same rows', async () => {
-            // Given a server that keeps failing the same page
-            const {result, rerender} = renderPaging(withDeviceRows(PAGE));
+        it('is asked for again at each end of the list while it keeps failing, but only once for one end', async () => {
+            // Given a page on its way from an end of the list, where the rows can't grow to mark a new end
+            const {result} = renderPaging(withDeviceRows(PAGE));
             await flushPromises();
+            const heldPage = holdAnswer();
+            mockedSearch.mockReturnValueOnce(heldPage.promise);
+
+            // When the list reports that end twice while the page is still on its way
+            act(() => result.current.loadMoreRows());
+            act(() => result.current.loadMoreRows());
+
+            // Then it costs one request, because the second is the same end reported again
+            expect(requestedOffsets()).toEqual([0, PAGE]);
+
+            // When the page fails and the user reaches the end twice more
             mockedSearch.mockReturnValue(Promise.resolve(500));
-
+            await act(async () => {
+                heldPage.answer(500);
+            });
             act(() => result.current.loadMoreRows());
             await flushPromises();
             act(() => result.current.loadMoreRows());
             await flushPromises();
 
-            expect(requestedOffsets()).toEqual([0, PAGE, PAGE]);
-
-            // When the list reports more ends on the same rows, which each failure can bring
-            act(() => result.current.loadMoreRows());
-            await flushPromises();
-            act(() => result.current.loadMoreRows());
-            await flushPromises();
-
-            // Then only one retry is spent per set of rows, so a failing server isn't hammered
-            expect(requestedOffsets()).toEqual([0, PAGE, PAGE]);
-
-            rerender({isFocused: false});
-            rerender({isFocused: true});
-            await flushPromises();
-
+            // Then each of those ends retries the page, or a failing server would leave the list stuck with nothing the user could do
             expect(requestedOffsets()).toEqual([0, PAGE, PAGE, PAGE]);
         });
 
