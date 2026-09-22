@@ -1,21 +1,27 @@
 import type {SearchListItem} from '@components/Search/SearchList/ListItem/types';
 import type {SearchData, SearchQueryJSON, SelectedTransactions} from '@components/Search/types';
 
+import useOnyx from '@hooks/useOnyx';
+
 import {search} from '@libs/actions/Search';
 import Log from '@libs/Log';
 import type {SearchKey} from '@libs/SearchKeyUtils';
 import {isTransactionGroupListItemType} from '@libs/SearchUIUtils';
 
 import CONST from '@src/CONST';
+import ONYXKEYS from '@src/ONYXKEYS';
+import type {SearchResults} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
+
+import type {OnyxEntry} from 'react-native-onyx';
 
 import {useEffect, useEffectEvent, useRef, useState} from 'react';
 
 /**
- * Paging for a to-do search, whose rows come from Onyx: how many of the device's rows render, and which server page is
- * still owed. Rows wait for their page, offline included, as on any other search. The hook keeps its own cursor because the
- * snapshot's `offset` and `isLoading` are shared by every caller of `search()`. `hasMoreResults` is shared too, so
- * another caller's answer can cost an extra page.
+ * Paging for a to-do search, whose rows come from Onyx: how many of the device's rows render, and which page is still
+ * owed. Rows wait for their page, offline included, as on any other search. The cursor is inherited from the shared
+ * snapshot at mount, a page already running included, and owned from the first request onwards, because every caller of
+ * `search()` writes that snapshot: a refresh rewinds it and report navigation pushes it forward.
  */
 
 type LiveSearchPagingParams = {
@@ -68,7 +74,46 @@ type RequestedRows = {
     serverRows: number;
 };
 
+type SharedPage = {
+    hash: number | undefined;
+    offset: number | undefined;
+    isInFlight: boolean;
+    didFail: boolean;
+};
+
+type InheritedPage = {
+    /** Rows the shared snapshot has already been given for this query. */
+    rows: number;
+
+    /** The page that was already running when this hook mounted, which it waits for instead of sending its own. */
+    inFlightOffset: number | undefined;
+};
+
 const PAGE_SIZE: number = CONST.SEARCH.RESULTS_PAGE_SIZE;
+
+const EMPTY_INHERITED_PAGE: InheritedPage = {rows: 0, inFlightOffset: undefined};
+
+function getSharedPage(snapshot: OnyxEntry<SearchResults>): SharedPage {
+    return {
+        hash: snapshot?.search?.hash,
+        offset: snapshot?.search?.offset,
+        isInFlight: snapshot?.search?.state === CONST.SEARCH.SNAPSHOT_STATE.LOADING,
+        didFail: typeof snapshot?.search?.responseJsonCode === 'number',
+    };
+}
+
+function getInheritedPage(sharedPage: SharedPage | undefined, hash: number): InheritedPage {
+    // A snapshot carries its hash only once an answer has landed in it, so anything else has delivered no rows.
+    if (!sharedPage || sharedPage.hash !== hash) {
+        return EMPTY_INHERITED_PAGE;
+    }
+    // The cursor is written when a request goes out, so a page still running, or one that failed, delivered nothing.
+    const cursor = Math.max(0, sharedPage.offset ?? 0);
+    if (sharedPage.isInFlight) {
+        return {rows: cursor, inFlightOffset: cursor};
+    }
+    return {rows: sharedPage.didFail ? cursor : cursor + PAGE_SIZE, inFlightOffset: undefined};
+}
 
 function getRowCountKeepingRowsInView(rows: SearchListItem[], rowLimit: number, selectedTransactions: SelectedTransactions, isRowShown: (row: SearchListItem) => boolean): number {
     const hasSelection = !isEmptyObject(selectedTransactions);
@@ -118,12 +163,50 @@ function useLiveSearchPaging({
     deviceFilteredData,
     selectedTransactions,
 }: LiveSearchPagingParams): LiveSearchPagingResult {
+    // Read here, not taken from the object Search holds, because the inheritance needs to know when the key has loaded.
+    const [sharedPage, sharedPageResult] = useOnyx(`${ONYXKEYS.COLLECTION.SNAPSHOT}${queryJSON.hash}`, {selector: getSharedPage});
+
     const [requested, setRequested] = useState<RequestedRows>({rows: PAGE_SIZE, serverRows: PAGE_SIZE});
 
     // Advances only on an answer, so a page is never skipped.
     const [nextPageToFetch, setNextPageToFetch] = useState(0);
 
     const [isRetryBlocked, setIsRetryBlocked] = useState(false);
+
+    /** What the shared snapshot had achieved when this hook mounted. Undefined until the snapshot key has loaded. */
+    const [inherited, setInherited] = useState<InheritedPage | undefined>(undefined);
+
+    /** A page another caller is running, which this hook waits for instead of sending one `search()` would drop. */
+    const [adoptedOffset, setAdoptedOffset] = useState<number | undefined>(undefined);
+
+    // Kept apart from the cursor, so a `hasMoreResults` inherited from an earlier session cannot reveal every device row.
+    const [hasAnsweredSinceMount, setHasAnsweredSinceMount] = useState(false);
+
+    // Rises each time paging is re-armed, by a reconnect or a return to the screen. An answer from before that decides nothing.
+    const [pagingEpoch, setPagingEpoch] = useState(0);
+
+    // Taken once, on the first render where the key is loaded, so a warm cursor costs no request at all.
+    if (isLiveSearch && !inherited && sharedPageResult.status === 'loaded') {
+        const inheritedPage = getInheritedPage(sharedPage, queryJSON.hash);
+        setInherited(inheritedPage);
+        setAdoptedOffset(inheritedPage.inFlightOffset);
+        if (inheritedPage.rows > 0) {
+            setNextPageToFetch((page) => Math.max(page, inheritedPage.rows));
+            setRequested((rows) => ({rows: Math.max(rows.rows, inheritedPage.rows), serverRows: Math.max(rows.serverRows, inheritedPage.rows)}));
+        }
+    }
+    const isAdoptedPageInFlight = adoptedOffset !== undefined;
+
+    // A page another caller is running answers into the same rows, so its result is taken as if this hook had sent it.
+    if (isLiveSearch && adoptedOffset !== undefined && !sharedPage?.isInFlight) {
+        setAdoptedOffset(undefined);
+        if (sharedPage?.didFail) {
+            setIsRetryBlocked(true);
+        } else {
+            setHasAnsweredSinceMount(true);
+            setNextPageToFetch((page) => Math.max(page, adoptedOffset + PAGE_SIZE));
+        }
+    }
 
     // Counts rather than a flag, so an answer settles only the refreshes owed when its request went out.
     const [refreshesOwed, setRefreshesOwed] = useState(0);
@@ -138,8 +221,10 @@ function useLiveSearchPaging({
         setWasFocused(isFocused);
         setDidLaterPagesNeedTotals(shouldCalculateTotalsOnLaterPages);
         const hasReconnected = wasOffline && !isOffline;
-        if (hasReconnected || (isFocused && !wasFocused)) {
+        const isPagingRearmed = hasReconnected || (isFocused && !wasFocused);
+        if (isPagingRearmed) {
             setIsRetryBlocked(false);
+            setPagingEpoch((epoch) => epoch + 1);
         }
         // Live changes can leave page 0's totals stale, so it is asked again too.
         const doLaterPagesNowNeedTotals = shouldCalculateTotalsOnLaterPages && !didLaterPagesNeedTotals;
@@ -148,9 +233,8 @@ function useLiveSearchPaging({
         }
     }
 
-    // Until a page answers, `hasMoreServerResults` may be stale.
-    const hasLoadedAnyPage = nextPageToFetch > 0;
-    const canServerHaveMore = hasMoreServerResults || !hasLoadedAnyPage;
+    // Until a page answers in this mount, `hasMoreServerResults` may be stale, an inherited one most of all.
+    const canServerHaveMore = hasMoreServerResults || !hasAnsweredSinceMount;
     const isAheadOfServer = requested.rows > requested.serverRows;
     const pagedRows = isAheadOfServer ? requested.rows : Math.min(requested.rows, Math.max(PAGE_SIZE, nextPageToFetch));
 
@@ -183,21 +267,50 @@ function useLiveSearchPaging({
     const lastPageOffset = Math.max(0, nextPageToFetch - PAGE_SIZE);
     const isRequestInFlightRef = useRef(false);
     const lastCountedEndRef = useRef<number | undefined>(undefined);
+    const pagingEpochRef = useRef(pagingEpoch);
+    const adoptedEndsRef = useRef(0);
+    const sharedPageRef = useRef(sharedPage);
+    useEffect(() => {
+        sharedPageRef.current = sharedPage;
+    }, [sharedPage]);
+
+    // Whatever was in flight belongs to an epoch that is over, so it can neither block paging nor hold it open.
+    useEffect(() => {
+        if (pagingEpochRef.current === pagingEpoch) {
+            return;
+        }
+        pagingEpochRef.current = pagingEpoch;
+        isRequestInFlightRef.current = false;
+    }, [pagingEpoch]);
 
     // Answers merge with `Math.max`, so a late answer, or one landing while the list is hidden, never undoes a newer one.
     const requestPage = useEffectEvent((offset: number) => {
         const shouldCalculateTotals = offset === 0 ? shouldCalculateTotalsOnFirstPage : shouldCalculateTotalsOnLaterPages;
         const refreshesOwedAtSend = refreshesOwed;
+        const epochAtSend = pagingEpochRef.current;
         const recordAnswer = (jsonCode: string | number | undefined) => {
-            // Cleared before the answer's update, so the render it causes can send the next page.
-            isRequestInFlightRef.current = false;
-            // `search()` also returns nothing when a delete drops the page or the same page is already in flight, and both count as failed.
+            const isFromCurrentEpoch = epochAtSend === pagingEpochRef.current;
+            if (isFromCurrentEpoch) {
+                // Cleared before the answer's update, so the render it causes can send the next page.
+                isRequestInFlightRef.current = false;
+            }
+            // `search()` also returns nothing when a delete drops the page or the same page is already in flight.
             if (jsonCode !== CONST.JSON_CODE.SUCCESS) {
+                // A failure from before paging was re-armed would block the attempt the user is waiting on now.
+                if (!isFromCurrentEpoch) {
+                    return;
+                }
+                // The snapshot still showing this page as out is the one sign that it was dropped as a duplicate, not lost.
+                if (sharedPageRef.current?.isInFlight && sharedPageRef.current?.offset === offset) {
+                    setAdoptedOffset(offset);
+                    return;
+                }
                 // Forgotten, so the next end of the list retries the page, which the rows alone could never ask for again.
                 lastCountedEndRef.current = undefined;
                 setIsRetryBlocked(true);
                 return;
             }
+            setHasAnsweredSinceMount(true);
             setRefreshesSettled((count) => Math.max(count, refreshesOwedAtSend));
             setNextPageToFetch((page) => Math.max(page, offset + PAGE_SIZE));
         };
@@ -213,7 +326,8 @@ function useLiveSearchPaging({
     });
 
     useEffect(() => {
-        if (!isLiveSearch || !isFocused || isOffline || isRequestInFlightRef.current) {
+        // Nothing is asked for before the inheritance is settled, or while the page it inherited is still out.
+        if (!isLiveSearch || !inherited || isAdoptedPageInFlight || !isFocused || isOffline || isRequestInFlightRef.current) {
             return;
         }
         if (isPageOwed) {
@@ -224,14 +338,21 @@ function useLiveSearchPaging({
         if (refreshesOwed > refreshesSettled && !isRetryBlocked) {
             requestPage(lastPageOffset);
         }
-    }, [isLiveSearch, isPageOwed, refreshesOwed, refreshesSettled, isRetryBlocked, isFocused, isOffline, nextPageToFetch, lastPageOffset]);
+    }, [isLiveSearch, inherited, isAdoptedPageInFlight, isPageOwed, refreshesOwed, refreshesSettled, isRetryBlocked, isFocused, isOffline, nextPageToFetch, lastPageOffset]);
 
     function loadMoreRows() {
-        if (!isLiveSearch || !isFocused || areRowsDeferred) {
+        if (!isLiveSearch || !isFocused || areRowsDeferred || !inherited) {
             return;
         }
 
-        const wasRetryBlocked = isRetryBlocked;
+        // A page left out by a reload never settles, so it is waited for until a second end says the user still is.
+        if (isAdoptedPageInFlight) {
+            if (adoptedEndsRef.current > 0) {
+                setAdoptedOffset(undefined);
+            }
+            adoptedEndsRef.current += 1;
+        }
+
         // FlashList reports an end for every new rows array, so an end counts only once the rendered rows change.
         const renderedRowCount = Math.min(rowLimit, shownRowCount);
         if (renderedRowCount === lastCountedEndRef.current) {
@@ -239,11 +360,11 @@ function useLiveSearchPaging({
         }
         // From what is on screen, so a list widened by a kept row still grows at its end.
         const askedRows = Math.max(requested.rows, rowLimit);
-        const isRequestCovered = Math.min(shownRowCount, rowLimit) >= askedRows || (!wasRetryBlocked && nextPageToFetch + PAGE_SIZE >= askedRows);
+        const isRequestCovered = Math.min(shownRowCount, rowLimit) >= askedRows || (!isRetryBlocked && nextPageToFetch + PAGE_SIZE >= askedRows);
         const canShowMore = shownRowCount > askedRows || canServerHaveMore;
         const shouldGrow = isRequestCovered && canShowMore;
         // Not remembered, so the same rows count again once the server has more.
-        if (!shouldGrow && !wasRetryBlocked) {
+        if (!shouldGrow && !isRetryBlocked) {
             return;
         }
         lastCountedEndRef.current = renderedRowCount;

@@ -7,10 +7,13 @@ import {search} from '@libs/actions/Search';
 import {buildSearchQueryJSON} from '@libs/SearchQueryUtils';
 
 import CONST from '@src/CONST';
+import ONYXKEYS from '@src/ONYXKEYS';
+import type {SearchResults} from '@src/types/onyx';
 
 import type {ReactNode} from 'react';
 
 import React, {Activity, StrictMode} from 'react';
+import Onyx from 'react-native-onyx';
 
 import {buildReportGroup, buildTransactionRow} from '../../utils/collections/searchListItems';
 import createMock from '../../utils/createMock';
@@ -92,6 +95,25 @@ async function flushPromises() {
 
 function requestedOffsets() {
     return mockedSearch.mock.calls.map(([params]) => params?.offset);
+}
+
+const SNAPSHOT_KEY = `${ONYXKEYS.COLLECTION.SNAPSHOT}${getQueryJSON().hash}` as const;
+
+/** The snapshot every caller of `search()` shares, as this query's earlier requests would have left it. */
+async function givenSharedPage({offset, isInFlight = false, didFail = false, hash = getQueryJSON().hash}: {offset: number; isInFlight?: boolean; didFail?: boolean; hash?: number}) {
+    await act(async () => {
+        await Onyx.set(
+            SNAPSHOT_KEY,
+            createMock<SearchResults>({
+                search: {
+                    hash,
+                    offset,
+                    state: isInFlight ? CONST.SEARCH.SNAPSHOT_STATE.LOADING : CONST.SEARCH.SNAPSHOT_STATE.LOADED,
+                    ...(didFail ? {responseJsonCode: 500} : {}),
+                },
+            }),
+        );
+    });
 }
 
 function holdAnswer() {
@@ -930,8 +952,29 @@ describe('useLiveSearchPaging', () => {
             expect(mockedSearch).toHaveBeenLastCalledWith(expect.objectContaining({offset: PAGE, shouldCalculateTotals: true}));
         });
 
-        it('holds the refresh a reconnect owes while a failed page blocks paging, and lets a fresh page settle it', async () => {
-            // Given a page that fails after the connection came back, with a reconnect refresh owed
+        it('sends the page again when the one it left behind fails after the user came back to the screen', async () => {
+            // Given a page still out when the user left the screen and came back, which is what a stuck request looks like
+            const {result, rerender} = renderPaging(withDeviceRows(PAGE * 4));
+            await flushPromises();
+            const secondPage = holdAnswer();
+            mockedSearch.mockReturnValueOnce(secondPage.promise);
+            act(() => result.current.loadMoreRows());
+
+            rerender({isFocused: false});
+            rerender();
+
+            // When that page finally fails
+            await act(async () => {
+                secondPage.answer(500);
+            });
+            await flushPromises();
+
+            // Then the page goes out again rather than the list waiting on a request nobody is holding any more
+            expect(requestedOffsets()).toEqual([0, PAGE, PAGE]);
+        });
+
+        it('sends the page again when the one it replaced fails on a connection that is already gone', async () => {
+            // Given a page still out when the connection dropped and came back, which owes a refresh
             const {result, rerender} = renderPaging(withDeviceRows(PAGE * 4));
             await flushPromises();
             const secondPage = holdAnswer();
@@ -940,22 +983,24 @@ describe('useLiveSearchPaging', () => {
 
             rerender({isOffline: true});
             rerender();
+
+            // When that page fails, which it does on a connection nothing is waiting on any more
             await act(async () => {
                 secondPage.answer(500);
             });
             await flushPromises();
 
-            // Then the refresh waits rather than going straight back to a server that just failed
-            expect(requestedOffsets()).toEqual([0, PAGE]);
+            // Then it goes out again at once, because a failure from an older connection says nothing about this one
+            expect(requestedOffsets()).toEqual([0, PAGE, PAGE]);
 
-            // When the user leaves the screen and comes back, which lifts the block
+            // When the user leaves the screen and comes back, which is what lifts a real block
             rerender({isFocused: false});
             rerender();
             await flushPromises();
             rerender();
             await flushPromises();
 
-            // Then it goes out once, because an owed refresh outlives the failure that held it back
+            // Then nothing else is sent, because that retry also settled the refresh the reconnect owed
             expect(requestedOffsets()).toEqual([0, PAGE, PAGE]);
         });
 
@@ -1590,6 +1635,141 @@ describe('useLiveSearchPaging', () => {
             // Then the rows still wait, and the footer shows while they do
             expect(result.current.visibleRows).toHaveLength(PAGE);
             expect(result.current.isLoadingMore).toBe(true);
+        });
+    });
+
+    describe('the pages it inherits at mount', () => {
+        afterEach(async () => {
+            await act(async () => {
+                await Onyx.set(SNAPSHOT_KEY, null);
+            });
+        });
+
+        it('shows the pages the snapshot was already given, and asks for nothing', async () => {
+            // Given a snapshot this query filled earlier, which survives a remount and a reload
+            await givenSharedPage({offset: PAGE * 2});
+
+            // When the hook mounts on it
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+
+            // Then those rows are back without a request, because the server already sent them and the rows never left Onyx
+            expect(result.current.visibleRows).toHaveLength(PAGE * 3);
+            expect(mockedSearch).not.toHaveBeenCalled();
+        });
+
+        it('inherits nothing from a snapshot that belongs to another query', async () => {
+            // Given a snapshot left by a different search, which a hash tells apart from this one's
+            await givenSharedPage({offset: PAGE * 2, hash: 999});
+
+            // When the hook mounts
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+
+            // Then it starts from the beginning, since those pages say nothing about this query
+            expect(result.current.visibleRows).toHaveLength(PAGE);
+            expect(requestedOffsets()).toEqual([0]);
+        });
+
+        it('does not count a page the snapshot asked for but never received', async () => {
+            // Given a snapshot whose last request failed, which still moved its cursor
+            await givenSharedPage({offset: PAGE * 2, didFail: true});
+
+            // When the hook mounts on it
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+
+            // Then only the pages that arrived show, because the cursor moves when a request goes out, not when it lands
+            expect(result.current.visibleRows).toHaveLength(PAGE * 2);
+
+            // When the user reaches the end of the list
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+
+            // Then the page that never arrived is asked for again rather than skipped
+            expect(requestedOffsets()).toEqual([PAGE * 2]);
+            expect(result.current.visibleRows).toHaveLength(PAGE * 3);
+        });
+
+        it('waits for a page that was already running instead of asking for it again', async () => {
+            // Given a page another caller sent, which `search()` would answer this hook with nothing at all
+            await givenSharedPage({offset: PAGE, isInFlight: true});
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+
+            // Then nothing is sent while it is out, and the rows it would bring are not shown yet
+            expect(mockedSearch).not.toHaveBeenCalled();
+            expect(result.current.visibleRows).toHaveLength(PAGE);
+
+            // When that page answers
+            await givenSharedPage({offset: PAGE});
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+
+            // Then the cursor has moved past it, so the end of the list asks for the page after it
+            expect(requestedOffsets()).toEqual([PAGE * 2]);
+        });
+
+        it('arms a retry when the page it was waiting for fails', async () => {
+            // Given a page another caller sent while this hook mounted
+            await givenSharedPage({offset: PAGE, isInFlight: true});
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+
+            // When it fails
+            await givenSharedPage({offset: PAGE, didFail: true});
+            await flushPromises();
+
+            // Then the end of the list asks for that same page, because a failure leaves its rows still owed
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+            expect(requestedOffsets()).toEqual([PAGE]);
+        });
+
+        it('stops waiting for a page that never settles once a second end of the list asks for it', async () => {
+            // Given a snapshot left mid-request by a reload, which nothing will ever answer
+            await givenSharedPage({offset: PAGE, isInFlight: true});
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+
+            // When the user reaches the end of the list twice, with the rows growing in between so both ends count
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+            expect(mockedSearch).not.toHaveBeenCalled();
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+
+            // Then the hook sends that page itself, rather than leaving the list shut for the rest of the mount
+            expect(requestedOffsets()).toEqual([PAGE]);
+        });
+
+        it('ignores the shared cursor once it has asked for a page of its own', async () => {
+            // Given a hook that has sent its first page, after which report navigation pages on the same snapshot
+            const {result} = renderPaging(withDeviceRows(PAGE * 5));
+            await flushPromises();
+            expect(requestedOffsets()).toEqual([0]);
+
+            // When another caller moves the shared cursor well past it
+            await givenSharedPage({offset: PAGE * 4});
+            await flushPromises();
+
+            // Then the list neither grows nor skips pages, because the cursor is this hook's from here on
+            expect(result.current.visibleRows).toHaveLength(PAGE);
+            act(() => result.current.loadMoreRows());
+            await flushPromises();
+            expect(requestedOffsets()).toEqual([0, PAGE]);
+        });
+
+        it('treats an inherited "no more results" as unknown until a page of its own answers', async () => {
+            // Given a snapshot whose last session ended with the server out of rows, which live changes may have undone
+            await givenSharedPage({offset: PAGE});
+
+            // When the hook mounts on it with more rows on the device than the server had
+            const {result} = renderPaging({...withDeviceRows(PAGE * 5), hasMoreServerResults: false});
+            await flushPromises();
+
+            // Then the device's rows stay behind the cap, instead of every cached row appearing at once
+            expect(result.current.visibleRows).toHaveLength(PAGE * 2);
         });
     });
 });
