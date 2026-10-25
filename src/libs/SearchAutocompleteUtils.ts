@@ -6,7 +6,6 @@ import type {PolicyCategories, PolicyTagLists, RecentlyUsedCategories, RecentlyU
 
 import type {MarkdownRange} from '@expensify/react-native-live-markdown';
 import type {OnyxCollection} from 'react-native-onyx';
-import type {SharedValue} from 'react-native-reanimated/lib/typescript/commonTypes';
 
 import {getTagNamesFromTagsLists} from './PolicyUtils';
 import {parse} from './SearchParser/autocompleteParser';
@@ -198,11 +197,11 @@ const userFriendlyColumnList = new Set(
 function filterOutRangesWithCorrectValue(
     range: AutocompleteParserRange,
     substitutionMap: SubstitutionMap,
-    userLogins: SharedValue<string[]>,
-    currencyList: SharedValue<string[]>,
-    categoryList: SharedValue<string[]>,
-    tagList: SharedValue<string[]>,
-    exportedToList: SharedValue<string[]>,
+    userLogins: string[],
+    currencyList: string[],
+    categoryList: string[],
+    tagList: string[],
+    exportedToList: string[],
     currentType: string,
 ) {
     'worklet';
@@ -245,12 +244,12 @@ function filterOutRangesWithCorrectValue(
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.PAID_BY:
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.EXPORTER:
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.ATTENDEE:
-            return substitutionMap[`${range.key}:${range.value}`] !== undefined || userLogins.get().includes(range.value) || range.value === CONST.SEARCH.ME;
+            return substitutionMap[`${range.key}:${range.value}`] !== undefined || userLogins.includes(range.value) || range.value === CONST.SEARCH.ME;
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.CURRENCY:
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.GROUP_CURRENCY:
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.PURCHASE_CURRENCY:
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.FOOTER_CURRENCY:
-            return currencyList.get().includes(range.value);
+            return currencyList.includes(range.value);
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.FOOTER_COUNT:
             return footerCountList.includes(range.value);
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.FOOTER_TOTAL:
@@ -274,9 +273,9 @@ function filterOutRangesWithCorrectValue(
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.ACTION:
             return actionList.includes(range.value);
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.CATEGORY:
-            return categoryList.get().includes(range.value) || range.value === CONST.SEARCH.CATEGORY_EMPTY_VALUE;
+            return categoryList.includes(range.value) || range.value === CONST.SEARCH.CATEGORY_EMPTY_VALUE;
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.TAG:
-            return tagList.get().includes(range.value);
+            return tagList.includes(range.value);
         case CONST.SEARCH.SYNTAX_ROOT_KEYS.GROUP_BY:
             if (currentType !== CONST.SEARCH.DATA_TYPES.EXPENSE && currentType !== CONST.SEARCH.DATA_TYPES.INVOICE && currentType !== CONST.SEARCH.DATA_TYPES.TRIP) {
                 return false;
@@ -305,7 +304,7 @@ function filterOutRangesWithCorrectValue(
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.TITLE:
             return range.value.length > 0;
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.EXPORTED_TO:
-            return exportedToList.get().includes(range.value);
+            return exportedToList.includes(range.value);
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.WITHDRAWAL_ID:
         case CONST.SEARCH.SYNTAX_FILTER_KEYS.REPORT_ID:
             return !['', 'null', 'undefined', '0', '-1'].includes(range.value);
@@ -337,11 +336,11 @@ function parseForLiveMarkdown(
     input: string,
     currentUserName: string,
     map: SubstitutionMap,
-    userLogins: SharedValue<string[]>,
-    currencyList: SharedValue<string[]>,
-    categoryList: SharedValue<string[]>,
-    tagList: SharedValue<string[]>,
-    exportedToList: SharedValue<string[]>,
+    userLogins: string[],
+    currencyList: string[],
+    categoryList: string[],
+    tagList: string[],
+    exportedToList: string[],
 ): MarkdownRange[] {
     'worklet';
 
@@ -356,7 +355,7 @@ function parseForLiveMarkdown(
     return ranges
         .filter((range) => filterOutRangesWithCorrectValue(range, map, userLogins, currencyList, categoryList, tagList, exportedToList, currentType))
         .map((range) => {
-            const isCurrentUserMention = userLogins.get().includes(range.value) || range.value === currentUserName || range.value === CONST.SEARCH.ME;
+            const isCurrentUserMention = userLogins.includes(range.value) || range.value === currentUserName || range.value === CONST.SEARCH.ME;
             const type = isCurrentUserMention ? 'mention-here' : 'mention-user';
 
             return {start: range.start, type, length: range.length};
