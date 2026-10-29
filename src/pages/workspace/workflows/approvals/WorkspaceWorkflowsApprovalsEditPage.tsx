@@ -74,6 +74,7 @@ function WorkspaceWorkflowsApprovalsEditPage({policy, isLoadingReportData = true
     const isLoadingApprovalWorkflow = isLoadingOnyxValue(approvalWorkflowMetadata);
     const {login: currentUserLogin = ''} = useCurrentUserPersonalDetails();
     const {isBetaEnabled} = usePermissions();
+    const isMultipleApproversBetaEnabled = isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS);
     const [initialApprovalWorkflow, setInitialApprovalWorkflow] = useState<ApprovalWorkflow | undefined>();
     const formRef = useRef<ComponentRef<typeof ScrollView>>(null);
     const {showConfirmModal} = useConfirmModal();
@@ -94,9 +95,7 @@ function WorkspaceWorkflowsApprovalsEditPage({policy, isLoadingReportData = true
             currentUserLogin,
             rules: getApprovalWorkflowRulesForPolicy(rulesCollection, route.params.policyID),
         };
-        const result = isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS)
-            ? convertApprovalWorkflowRulesToWorkflows(conversionParams)
-            : convertPolicyEmployeesToApprovalWorkflows(conversionParams);
+        const result = isMultipleApproversBetaEnabled ? convertApprovalWorkflowRulesToWorkflows(conversionParams) : convertPolicyEmployeesToApprovalWorkflows(conversionParams);
 
         const memberEmail = route.params.memberEmail;
         const currentApprovalWorkflow =
@@ -118,7 +117,7 @@ function WorkspaceWorkflowsApprovalsEditPage({policy, isLoadingReportData = true
             return;
         }
 
-        if (!validateApprovalWorkflow(approvalWorkflow, isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS))) {
+        if (!validateApprovalWorkflow(approvalWorkflow, isMultipleApproversBetaEnabled)) {
             return;
         }
 
@@ -130,7 +129,7 @@ function WorkspaceWorkflowsApprovalsEditPage({policy, isLoadingReportData = true
             // Pop just this screen rather than the whole RHP stack, so entry points that pushed the editor on top of
             // another screen (e.g. a member's profile) return there instead of being torn down with it.
             // The write is deferred until the close animation ends to avoid re-rendering the animating-out panel.
-            if (isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS)) {
+            if (isMultipleApproversBetaEnabled) {
                 Navigation.goBack(undefined, {
                     afterTransition: () => {
                         updateApprovalWorkflowRules({approvalWorkflow: workflowToSave, initialApprovalWorkflow, policy, rules: rulesCollection, defaultApprovalWorkflow});
@@ -157,11 +156,10 @@ function WorkspaceWorkflowsApprovalsEditPage({policy, isLoadingReportData = true
 
         // Mark as deleting to prevent the useEffect from clearing the workflow and causing a blink
         isDeleting.current = true;
-        const useRulesBackend = isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS);
         Navigation.goBack(undefined, {
             afterTransition: () => {
                 // Remove the approval workflow using the initial data as it could be already edited
-                const didRemoveRules = useRulesBackend && removeApprovalWorkflowRules(initialApprovalWorkflow, policy, rulesCollection, defaultApprovalWorkflow);
+                const didRemoveRules = isMultipleApproversBetaEnabled && removeApprovalWorkflowRules(initialApprovalWorkflow, policy, rulesCollection, defaultApprovalWorkflow);
                 if (didRemoveRules) {
                     return;
                 }

@@ -2013,6 +2013,11 @@ function hasApprovalWorkflowWithNonMemberApprover({policy, currentUserLogin, rul
     return shownApprovalWorkflows.some((workflow) => workflow.approvers.some((approver) => !!getNonMemberApproverError(approver, workflow.isDefault)));
 }
 
+/** The error for an approver whose additional approver for reports over the limit is no longer on the workspace. */
+function getOverLimitApproverNonMemberError(approver: Approver | undefined): TranslationPaths | undefined {
+    return approver?.isOverLimitForwardsToNotWorkspaceMember ? 'workflowsPage.overLimitApproverNotWorkspaceMember' : undefined;
+}
+
 /**
  * The error for an approver who is no longer on the workspace, or whose additional approver for reports over the limit
  * isn't, or undefined when neither is. The default workflow can't be deleted, so its copy only asks for a new approver.
@@ -2021,10 +2026,72 @@ function getNonMemberApproverError(approver: Approver | undefined, isDefaultWork
     if (approver?.isNotWorkspaceMember) {
         return isDefaultWorkflow ? 'workflowsPage.defaultWorkflowApproverNotWorkspaceMember' : 'workflowsPage.approverNotWorkspaceMember';
     }
-    if (approver?.isOverLimitForwardsToNotWorkspaceMember) {
-        return 'workflowsPage.overLimitApproverNotWorkspaceMember';
+    return getOverLimitApproverNonMemberError(approver);
+}
+
+/** The emails of the workflow's approvers. */
+function getWorkflowApproverEmails(approvers: Array<Approver | undefined>): Set<string> {
+    return new Set(approvers.map((approver) => approver?.email).filter((email): email is string => !!email));
+}
+
+/** The emails that reports over a limit go to, from every step of the workflow except `exceptApproverIndex`. */
+function getOverLimitApproverEmails(approvers: Array<Approver | undefined>, exceptApproverIndex?: number): Set<string> {
+    return new Set(approvers.flatMap((approver, approverIndex) => (approverIndex !== exceptApproverIndex && approver?.overLimitForwardsTo ? [approver.overLimitForwardsTo] : [])));
+}
+
+/**
+ * Whether reports over the approver's limit go to someone who already approves in the workflow. The approval workflow
+ * rules forward those reports straight to them, so the limit adds no one when they are the next approver, skips the
+ * approvers in between when they come later, and sends the reports back around the workflow when they come earlier.
+ */
+function isOverLimitApproverInWorkflow(approver: Approver | undefined, approvers: Array<Approver | undefined>): boolean {
+    return !!approver?.overLimitForwardsTo && getWorkflowApproverEmails(approvers).has(approver.overLimitForwardsTo);
+}
+
+type GetOverLimitApproverErrorParams = {
+    /** The approver whose routes are checked */
+    approver: Approver | undefined;
+
+    /** Every approver of the workflow, in order */
+    approvers: Array<Approver | undefined>;
+
+    /** Whether the `MULTIPLE_APPROVERS` beta is enabled, which saves the workflow as approval workflow rules */
+    isMultipleApproversBetaEnabled: boolean;
+};
+
+/**
+ * The error `validateApprovalWorkflow` blocks on for where the approver's reports over the limit go, or undefined when
+ * they go to a valid additional approver or the approver has no limit.
+ */
+function getOverLimitApproverError({approver, approvers, isMultipleApproversBetaEnabled}: GetOverLimitApproverErrorParams): TranslationPaths | undefined {
+    // A repeated approver's row only shows the circular workflow error, since replacing them to fix it clears their limit
+    if (approver?.isCircularReference) {
+        return undefined;
+    }
+    const nonMemberError = getOverLimitApproverNonMemberError(approver);
+    if (nonMemberError) {
+        return nonMemberError;
+    }
+    if (isMultipleApproversBetaEnabled && isOverLimitApproverInWorkflow(approver, approvers)) {
+        return 'workflowsPage.overLimitApproverInWorkflow';
     }
     return undefined;
+}
+
+type GetApproverRouteErrorParams = GetOverLimitApproverErrorParams & {
+    /** Whether this is the default workflow, which can't be deleted */
+    isDefaultWorkflow: boolean | undefined;
+};
+
+/** The error `validateApprovalWorkflow` blocks on for where the approver's reports go, or undefined when every route is valid. */
+function getApproverRouteError({isDefaultWorkflow, ...overLimitParams}: GetApproverRouteErrorParams): TranslationPaths | undefined {
+    const {approver} = overLimitParams;
+
+    // See getOverLimitApproverError: a repeated approver's row only shows the circular workflow error
+    if (approver?.isNotWorkspaceMember && !approver.isCircularReference) {
+        return getNonMemberApproverError(approver, isDefaultWorkflow);
+    }
+    return getOverLimitApproverError(overLimitParams);
 }
 
 export {
@@ -2044,7 +2111,11 @@ export {
     getEnforcedApprovalWorkflows,
     getEnforcedApprovalWorkflowsForMembers,
     getApprovalWorkflowSource,
+    getApproverRouteError,
     getNonMemberApproverError,
+    getOverLimitApproverEmails,
+    getOverLimitApproverError,
+    getWorkflowApproverEmails,
     filterRulesForPolicy,
     getApproverPendingActionByMemberEmail,
     getRulesSubmitterToFirstApprover,
@@ -2057,6 +2128,7 @@ export {
     hasRuleBasedDefaultWorkflow,
     includesEveryWorkspaceMember,
     isApprovalWorkflowLockedByIntegration,
+    isOverLimitApproverInWorkflow,
     getEligibleExistingBusinessBankAccounts,
     getOpenConnectedToPolicyBusinessBankAccounts,
     getOverLimitForwardsToDisplayName,

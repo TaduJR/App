@@ -17,6 +17,7 @@ import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails'
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
+import usePermissions from '@hooks/usePermissions';
 import usePersonalDetailsByEmail from '@hooks/usePersonalDetailsByEmail';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -25,7 +26,7 @@ import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {WorkspaceSplitNavigatorParamList} from '@libs/Navigation/types';
 import {canMemberWrite, goBackFromInvalidPolicy, isPendingDeletePolicy, shouldHideDynamicExternalWorkflowPeople} from '@libs/PolicyUtils';
-import {isApprovalWorkflowLockedByIntegration} from '@libs/WorkflowUtils';
+import {getOverLimitApproverError, isApprovalWorkflowLockedByIntegration} from '@libs/WorkflowUtils';
 
 import AccessOrNotFoundWrapper from '@pages/workspace/AccessOrNotFoundWrapper';
 import type {WithPolicyAndFullscreenLoadingProps} from '@pages/workspace/withPolicyAndFullscreenLoading';
@@ -55,6 +56,8 @@ function WorkspaceWorkflowsApprovalsApprovalLimitPage({policy, isLoadingReportDa
     const personalDetailsByEmail = usePersonalDetailsByEmail();
     const {getCurrencyDecimals} = useCurrencyListActions();
     const {login: currentUserLogin = ''} = useCurrentUserPersonalDetails();
+    const {isBetaEnabled} = usePermissions();
+    const isMultipleApproversBetaEnabled = isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS);
 
     const policyID = route.params.policyID;
     const approverIndex = Number(route.params.approverIndex) || 0;
@@ -96,7 +99,17 @@ function WorkspaceWorkflowsApprovalsApprovalLimitPage({policy, isLoadingReportDa
     const onlyApproverEmpty = hasAmount && !hasApprover;
 
     const amountError = hasSubmitted && onlyAmountEmpty ? translate('workflowsApprovalLimitPage.enterAmountError') : undefined;
-    const approverErrorText = hasSubmitted && onlyApproverEmpty ? translate('workflowsApprovalLimitPage.enterApproverError') : undefined;
+
+    // Only with the beta does this page show the over-limit errors the editor flags and block Save on them; without it the page works as before
+    const overLimitApproverError = isMultipleApproversBetaEnabled
+        ? getOverLimitApproverError({approver: currentApprover, approvers: approvalWorkflow?.approvers ?? [], isMultipleApproversBetaEnabled: true})
+        : undefined;
+    let approverErrorText: string | undefined;
+    if (hasSubmitted && onlyApproverEmpty) {
+        approverErrorText = translate('workflowsApprovalLimitPage.enterApproverError');
+    } else if (overLimitApproverError) {
+        approverErrorText = translate(overLimitApproverError);
+    }
 
     const firstApprover = approvalWorkflow?.originalApprovers?.at(0)?.email ?? '';
 
@@ -166,6 +179,11 @@ function WorkspaceWorkflowsApprovalsApprovalLimitPage({policy, isLoadingReportDa
 
         if (onlyAmountEmpty || onlyApproverEmpty) {
             setHasSubmitted(true);
+            return;
+        }
+
+        // The admin picks a different additional approver or removes the limit here, since the editor can't save the workflow with it
+        if (overLimitApproverError) {
             return;
         }
 

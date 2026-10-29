@@ -18,7 +18,10 @@ import {
     getApproverPendingActionByMemberEmail,
     getOpenConnectedToPolicyBusinessBankAccounts,
     getApprovalWorkflowSource,
+    getApproverRouteError,
     getNonMemberApproverError,
+    getOverLimitApproverEmails,
+    getOverLimitApproverError,
     getOverLimitForwardsToDisplayName,
     getEnforcedApprovalWorkflows,
     getEnforcedApprovalWorkflowsForMembers,
@@ -31,6 +34,7 @@ import {
     hasApprovalWorkflowWithNonMemberApprover,
     includesEveryWorkspaceMember,
     isApprovalWorkflowLockedByIntegration,
+    isOverLimitApproverInWorkflow,
     mergeWorkflowMembersWithAvailableMembers,
     reconcileApprovalWorkflowRulesForCreate,
     reconcileApprovalWorkflowRulesForEdit,
@@ -3383,6 +3387,114 @@ describe('WorkflowUtils', () => {
             // When the error copy is picked
             // Then there is nothing to fix
             expect(getNonMemberApproverError(buildApprover(1), false)).toBeUndefined();
+        });
+    });
+
+    describe('isOverLimitApproverInWorkflow', () => {
+        it.each([
+            ['the next approver, so the limit would add no one', '3@example.com'],
+            ['a later approver, so those reports would skip the approvers in between', '4@example.com'],
+            ['an earlier approver, so those reports would loop back', '1@example.com'],
+        ])('is true when reports over the limit go to %s', (_description, overLimitForwardsTo) => {
+            // Given the workflow 1 > 2 > 3 > 4, where reports over 2's limit go to one of its approvers
+            const limitedApprover = buildApprover(2, {approvalLimit: 1000, overLimitForwardsTo});
+            const approvers = [buildApprover(1), limitedApprover, buildApprover(3), buildApprover(4)];
+
+            // When the over-limit approver is checked against the workflow
+            // Then it is reported, since the approval workflow rules would forward those reports straight to them
+            expect(isOverLimitApproverInWorkflow(limitedApprover, approvers)).toBe(true);
+        });
+
+        it('is false when reports over the limit go to someone outside the workflow, or nowhere', () => {
+            // Given the workflow 1 > 2, where 1's limit sends reports to someone outside it and 2 has no limit
+            const limitedApprover = buildApprover(1, {approvalLimit: 1000, overLimitForwardsTo: '9@example.com'});
+            const approvers = [limitedApprover, buildApprover(2)];
+
+            // When each approver is checked against the workflow
+            // Then neither is reported, since the limit adds someone new and the approver without a limit adds no one
+            expect(isOverLimitApproverInWorkflow(limitedApprover, approvers)).toBe(false);
+            expect(isOverLimitApproverInWorkflow(approvers.at(1), approvers)).toBe(false);
+        });
+    });
+
+    describe('getOverLimitApproverError', () => {
+        it('only reports where reports over the limit go, not whether the approver left', () => {
+            // Given an approver who left the workspace without a limit, and one whose additional approver left
+            const removedApprover = buildApprover(1, {isNotWorkspaceMember: true});
+            const limitedApprover = buildApprover(2, {approvalLimit: 1000, overLimitForwardsTo: '9@example.com', isOverLimitForwardsToNotWorkspaceMember: true});
+            const approvers = [removedApprover, limitedApprover];
+
+            // When the Approval Limit page asks for the error to show on the additional approver
+            // Then only the approver whose additional approver left gets one, since the approver's own membership belongs to the editor
+            expect(getOverLimitApproverError({approver: removedApprover, approvers, isMultipleApproversBetaEnabled: true})).toBeUndefined();
+            expect(getOverLimitApproverError({approver: limitedApprover, approvers, isMultipleApproversBetaEnabled: true})).toBe('workflowsPage.overLimitApproverNotWorkspaceMember');
+        });
+
+        it('leaves a repeated approver to the circular workflow error', () => {
+            // Given the circular workflow 1 > 2 > 1, where the repeated approver's reports over the limit go to 2
+            const repeatedApprover = buildApprover(1, {isCircularReference: true, approvalLimit: 1000, overLimitForwardsTo: '2@example.com'});
+            const approvers = [buildApprover(1), buildApprover(2), repeatedApprover];
+
+            // When the Approval Limit page asks for the error to show on the repeated approver's additional approver
+            // Then there is none, since the editor only shows the circular workflow error on that row
+            expect(getOverLimitApproverError({approver: repeatedApprover, approvers, isMultipleApproversBetaEnabled: true})).toBeUndefined();
+        });
+    });
+
+    describe('getOverLimitApproverEmails', () => {
+        it("leaves out the given step's own over-limit approver", () => {
+            // Given the workflow 1 > 2, where reports over each approver's limit go to someone else, and a step not picked yet
+            const approvers = [
+                buildApprover(1, {approvalLimit: 1000, overLimitForwardsTo: '8@example.com'}),
+                buildApprover(2, {approvalLimit: 1000, overLimitForwardsTo: '9@example.com'}),
+                undefined,
+            ];
+
+            // When the approver picker for step 1 asks which emails other steps send reports over the limit to
+            // Then only step 2's over-limit approver is returned, since picking a new approver for step 1 clears its own limit
+            expect(getOverLimitApproverEmails(approvers, 0)).toEqual(new Set(['9@example.com']));
+            expect(getOverLimitApproverEmails(approvers)).toEqual(new Set(['8@example.com', '9@example.com']));
+        });
+    });
+
+    describe('getApproverRouteError', () => {
+        it('only rejects an over-limit approver who already approves in the workflow with the multiple approvers beta', () => {
+            // Given the workflow 1 > 2, where reports over 1's limit go to 2
+            const limitedApprover = buildApprover(1, {approvalLimit: 1000, overLimitForwardsTo: '2@example.com'});
+            const approvers = [limitedApprover, buildApprover(2)];
+
+            // When the error is picked with and without the beta, which decides whether the workflow is saved as rules
+            // Then only the rules reject it, and the employeeList routing used without the beta stays as it was
+            expect(getApproverRouteError({approver: limitedApprover, approvers, isDefaultWorkflow: false, isMultipleApproversBetaEnabled: true})).toBe(
+                'workflowsPage.overLimitApproverInWorkflow',
+            );
+            expect(getApproverRouteError({approver: limitedApprover, approvers, isDefaultWorkflow: false, isMultipleApproversBetaEnabled: false})).toBeUndefined();
+        });
+
+        it('asks for a new approver first when the approver also left the workspace', () => {
+            // Given an approver who left the workspace, whose reports over the limit also go to the next approver
+            const removedApprover = buildApprover(1, {isNotWorkspaceMember: true, approvalLimit: 1000, overLimitForwardsTo: '2@example.com'});
+            const approvers = [removedApprover, buildApprover(2)];
+
+            // When the error is picked
+            // Then it asks for a new approver, since replacing the approver clears their limit as well
+            expect(getApproverRouteError({approver: removedApprover, approvers, isDefaultWorkflow: false, isMultipleApproversBetaEnabled: true})).toBe(
+                'workflowsPage.approverNotWorkspaceMember',
+            );
+        });
+
+        it('leaves a repeated approver to the circular workflow error', () => {
+            // Given the circular workflow 1 > 2 > 1, where approver 1 left the workspace and their reports over the limit go to 2
+            const removedApprover = buildApprover(1, {isNotWorkspaceMember: true, approvalLimit: 1000, overLimitForwardsTo: '2@example.com'});
+            const repeatedApprover = {...removedApprover, isCircularReference: true};
+            const approvers = [removedApprover, buildApprover(2), repeatedApprover];
+
+            // When the error is picked for each row of approver 1
+            // Then only the first row gets a route error, so the editor and the save show the circular workflow error on the repeated one
+            expect(getApproverRouteError({approver: removedApprover, approvers, isDefaultWorkflow: false, isMultipleApproversBetaEnabled: true})).toBe(
+                'workflowsPage.approverNotWorkspaceMember',
+            );
+            expect(getApproverRouteError({approver: repeatedApprover, approvers, isDefaultWorkflow: false, isMultipleApproversBetaEnabled: true})).toBeUndefined();
         });
     });
 

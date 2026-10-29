@@ -15,7 +15,7 @@ import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {WorkspaceSplitNavigatorParamList} from '@libs/Navigation/types';
 import {getMemberAccountIDsForWorkspace, isExpensifyTeam, shouldFilterExpensifyTeam, shouldHideDynamicExternalWorkflowPeople} from '@libs/PolicyUtils';
-import {isApprovalWorkflowLockedByIntegration} from '@libs/WorkflowUtils';
+import {getWorkflowApproverEmails, isApprovalWorkflowLockedByIntegration} from '@libs/WorkflowUtils';
 
 import AccessOrNotFoundWrapper from '@pages/workspace/AccessOrNotFoundWrapper';
 import MemberRightIcon from '@pages/workspace/MemberRightIcon';
@@ -54,7 +54,7 @@ function WorkspaceWorkflowsApprovalsOverLimitApproverPage({policy, personalDetai
     const employeeList = policy?.employeeList;
     const isDefault = approvalWorkflow?.isDefault;
     const membersEmail = approvalWorkflow?.members.map((member) => member.email);
-    const workflowApproverEmails = new Set(approvalWorkflow?.approvers?.map((approver) => approver?.email));
+    const workflowApproverEmails = getWorkflowApproverEmails(approvalWorkflow?.approvers ?? []);
 
     const currentApproverEmail = currentApprover?.email;
 
@@ -80,20 +80,22 @@ function WorkspaceWorkflowsApprovalsOverLimitApproverPage({policy, personalDetai
                     return null;
                 }
 
-                if (shouldFilterOutExpensifyTeam && isExpensifyTeam(email) && currentApprover?.overLimitForwardsTo !== email) {
+                const isSelected = currentApprover?.overLimitForwardsTo === email;
+
+                if (shouldFilterOutExpensifyTeam && isExpensifyTeam(email) && !isSelected) {
                     return null;
                 }
 
-                if (!isDefault && policy?.preventSelfApproval && membersEmail?.includes(email)) {
+                // Keep a saved pick that breaks isOverLimitApproverInWorkflow listed, so the admin can clear it
+                const isSavedPickToClear = isMultipleApproversBetaEnabled && isSelected;
+
+                if (!isDefault && policy?.preventSelfApproval && membersEmail?.includes(email) && !isSavedPickToClear) {
                     return null;
                 }
 
-                if (email === currentApproverEmail) {
-                    return null;
-                }
-
-                // Someone who already approves in this workflow approves every report anyway, so the limit can't add them
-                if (isMultipleApproversBetaEnabled && workflowApproverEmails.has(email)) {
+                // With the beta, the workflow's approvers include the current approver
+                const isApproverOfThisWorkflow = isMultipleApproversBetaEnabled ? workflowApproverEmails.has(email) : email === currentApproverEmail;
+                if (isApproverOfThisWorkflow && !isSavedPickToClear) {
                     return null;
                 }
 
@@ -108,7 +110,7 @@ function WorkspaceWorkflowsApprovalsOverLimitApproverPage({policy, personalDetai
                     text: displayName,
                     alternateText: email,
                     keyForList: email,
-                    isSelected: currentApprover?.overLimitForwardsTo === email,
+                    isSelected,
                     login: email,
                     value: email,
                     icons: [{source: avatar ?? expensifyIcons.FallbackAvatar, type: CONST.ICON_TYPE_AVATAR, name: displayName, id: accountID}],

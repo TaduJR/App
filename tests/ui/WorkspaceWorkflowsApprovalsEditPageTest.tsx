@@ -390,6 +390,32 @@ describe('WorkspaceWorkflowsApprovalsEditPage', () => {
         });
     });
 
+    describe('additional approver who already approves in the workflow', () => {
+        it('flags the approver as soon as the editor opens and blocks saving with the multiple approvers beta', async () => {
+            // Given Bob's workflow Carol > Alice, saved while Carol's reports over the limit could still go to Alice
+            await act(async () => {
+                await Onyx.set(ONYXKEYS.BETAS, [CONST.BETAS.MULTIPLE_APPROVERS]);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.POLICY}${POLICY_ID}`, {
+                    employeeList: {[CAROL_EMAIL]: {email: CAROL_EMAIL, forwardsTo: ALICE_EMAIL, approvalLimit: 5000, overLimitForwardsTo: ALICE_EMAIL}},
+                });
+                await waitForBatchedUpdatesWithAct();
+            });
+
+            // When the admin opens that workflow in the editor
+            renderEditPage(bobsWorkflowRoute);
+            await waitForBatchedUpdatesWithAct();
+
+            // Then Carol shows the error right away, before an unrelated edit runs into it on Save
+            expect(await screen.findByText(translateLocal('workflowsPage.overLimitApproverInWorkflow'))).toBeOnTheScreen();
+
+            // And saving is blocked until the admin picks a different additional approver
+            jest.mocked(Navigation.goBack).mockClear();
+            fireEvent.press(screen.getByText(translateLocal('common.save')));
+            await waitForBatchedUpdatesWithAct();
+            expect(Navigation.goBack).not.toHaveBeenCalled();
+        });
+    });
+
     describe('shared approver hint', () => {
         const aliceApprover: Approver = {
             email: ALICE_EMAIL,

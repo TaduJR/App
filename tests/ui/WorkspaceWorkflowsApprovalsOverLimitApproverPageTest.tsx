@@ -102,9 +102,12 @@ async function renderPage(approverIndex: number) {
     return result;
 }
 
+function getRows(): SelectionListApprover[] {
+    return jest.mocked(ApproverSelectionList).mock.lastCall?.[0].allApprovers ?? [];
+}
+
 function getRowLogins() {
-    const rows: SelectionListApprover[] = jest.mocked(ApproverSelectionList).mock.lastCall?.[0].allApprovers ?? [];
-    return rows.map((row) => row.login);
+    return getRows().map((row) => row.login);
 }
 
 describe('WorkspaceWorkflowsApprovalsOverLimitApproverPage', () => {
@@ -146,5 +149,120 @@ describe('WorkspaceWorkflowsApprovalsOverLimitApproverPage', () => {
         expect(logins).not.toContain(BOB_EMAIL);
         expect(logins).not.toContain(ERIN_EMAIL);
         expect(logins).toEqual(expect.arrayContaining([ADMIN_EMAIL, DAVE_EMAIL, FRANK_EMAIL]));
+    });
+
+    it('keeps offering approvers of the workflow without the multiple approvers beta', async () => {
+        // Given the workflow Bob > Erin on an account without the beta, which saves it through the employeeList
+        await act(async () => {
+            await Onyx.set(ONYXKEYS.BETAS, []);
+        });
+        await waitForBatchedUpdatesWithAct();
+
+        // When the admin picks who else approves Bob's reports over the limit
+        await renderPage(0);
+
+        // Then Erin can still be picked, since the employeeList routing used without the beta stays as it was
+        expect(getRowLogins()).toContain(ERIN_EMAIL);
+    });
+
+    it('keeps a saved additional approver who already approves in the workflow listed so the admin can clear them', async () => {
+        // Given Bob > Erin > Frank saved while an approver of the workflow could still be picked, with Bob's reports over
+        // the limit going to Erin
+        await act(async () => {
+            setApprovalWorkflow({
+                ...INITIAL_APPROVAL_WORKFLOW,
+                action: CONST.APPROVAL_WORKFLOW.ACTION.EDIT,
+                members: [{email: DAVE_EMAIL, displayName: DAVE_EMAIL}],
+                approvers: [
+                    {email: BOB_EMAIL, displayName: BOB_EMAIL, approvalLimit: 5000, overLimitForwardsTo: ERIN_EMAIL},
+                    {email: ERIN_EMAIL, displayName: ERIN_EMAIL},
+                    {email: FRANK_EMAIL, displayName: FRANK_EMAIL},
+                ],
+            });
+        });
+        await waitForBatchedUpdatesWithAct();
+
+        // When the admin opens who else approves Bob's reports over the limit
+        await renderPage(0);
+
+        // Then Erin is listed as the current pick, so the admin sees why the save is blocked and can tap her to clear it,
+        // while Frank, who also approves in the workflow, still can't be picked
+        expect(getRows().find((row) => row.login === ERIN_EMAIL)?.isSelected).toBe(true);
+        expect(getRowLogins()).not.toContain(FRANK_EMAIL);
+    });
+
+    it('keeps a saved additional approver who is the approver themselves listed so the admin can clear them', async () => {
+        // Given Bob > Erin saved with Bob's reports over the limit going back to Bob
+        await act(async () => {
+            setApprovalWorkflow({
+                ...INITIAL_APPROVAL_WORKFLOW,
+                action: CONST.APPROVAL_WORKFLOW.ACTION.EDIT,
+                members: [{email: DAVE_EMAIL, displayName: DAVE_EMAIL}],
+                approvers: [
+                    {email: BOB_EMAIL, displayName: BOB_EMAIL, approvalLimit: 5000, overLimitForwardsTo: BOB_EMAIL},
+                    {email: ERIN_EMAIL, displayName: ERIN_EMAIL},
+                ],
+            });
+        });
+        await waitForBatchedUpdatesWithAct();
+
+        // When the admin opens who else approves Bob's reports over the limit
+        await renderPage(0);
+
+        // Then Bob is listed as the current pick, so the admin sees why the save is blocked and can tap him to clear it
+        expect(getRows().find((row) => row.login === BOB_EMAIL)?.isSelected).toBe(true);
+    });
+
+    it('keeps a saved additional approver listed when preventing self-approval hides the other members', async () => {
+        // Given a workspace that prevents self-approval, and Bob > Erin for Dave and Erin, with Bob's reports over the
+        // limit going to Erin
+        await act(async () => {
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.POLICY}${POLICY_ID}`, {preventSelfApproval: true});
+            setApprovalWorkflow({
+                ...INITIAL_APPROVAL_WORKFLOW,
+                action: CONST.APPROVAL_WORKFLOW.ACTION.EDIT,
+                members: [
+                    {email: DAVE_EMAIL, displayName: DAVE_EMAIL},
+                    {email: ERIN_EMAIL, displayName: ERIN_EMAIL},
+                ],
+                approvers: [
+                    {email: BOB_EMAIL, displayName: BOB_EMAIL, approvalLimit: 5000, overLimitForwardsTo: ERIN_EMAIL},
+                    {email: ERIN_EMAIL, displayName: ERIN_EMAIL},
+                ],
+            });
+        });
+        await waitForBatchedUpdatesWithAct();
+
+        // When the admin opens who else approves Bob's reports over the limit
+        await renderPage(0);
+
+        // Then Erin is still listed as the current pick so the admin can clear her, while Dave stays hidden as a member
+        expect(getRows().find((row) => row.login === ERIN_EMAIL)?.isSelected).toBe(true);
+        expect(getRowLogins()).not.toContain(DAVE_EMAIL);
+    });
+
+    it('still leaves the approver themselves out without the multiple approvers beta', async () => {
+        // Given Bob > Erin saved with Bob's reports over the limit going back to Bob, on an account without the beta
+        await act(async () => {
+            await Onyx.set(ONYXKEYS.BETAS, []);
+            setApprovalWorkflow({
+                ...INITIAL_APPROVAL_WORKFLOW,
+                action: CONST.APPROVAL_WORKFLOW.ACTION.EDIT,
+                members: [{email: DAVE_EMAIL, displayName: DAVE_EMAIL}],
+                approvers: [
+                    {email: BOB_EMAIL, displayName: BOB_EMAIL, approvalLimit: 5000, overLimitForwardsTo: BOB_EMAIL},
+                    {email: ERIN_EMAIL, displayName: ERIN_EMAIL},
+                ],
+            });
+        });
+        await waitForBatchedUpdatesWithAct();
+
+        // When the admin opens who else approves Bob's reports over the limit
+        await renderPage(0);
+
+        // Then Bob is not listed, as before, since nothing flags that pick without the beta, while the others still are
+        const logins = getRowLogins();
+        expect(logins).not.toContain(BOB_EMAIL);
+        expect(logins).toContain(ERIN_EMAIL);
     });
 });

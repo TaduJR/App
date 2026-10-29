@@ -45,6 +45,7 @@ function WorkspaceWorkflowsApprovalsCreatePage({policy, isLoadingReportData = tr
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {isBetaEnabled} = usePermissions();
+    const isMultipleApproversBetaEnabled = isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS);
     const [approvalWorkflow] = useOnyx(ONYXKEYS.APPROVAL_WORKFLOW);
     const [rulesCollection] = useOnyx(ONYXKEYS.COLLECTION.RULE);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
@@ -67,7 +68,7 @@ function WorkspaceWorkflowsApprovalsCreatePage({policy, isLoadingReportData = tr
             return;
         }
 
-        if (!validateApprovalWorkflow(approvalWorkflow, isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS))) {
+        if (!validateApprovalWorkflow(approvalWorkflow, isMultipleApproversBetaEnabled)) {
             return;
         }
 
@@ -75,7 +76,7 @@ function WorkspaceWorkflowsApprovalsCreatePage({policy, isLoadingReportData = tr
         const workflowToCreate = {...approvalWorkflow, isDefault: includesEveryWorkspaceMember(getWorkflowMemberEmails(approvalWorkflow.members), policy?.employeeList)};
 
         startWithLoading(() => {
-            if (isBetaEnabled(CONST.BETAS.MULTIPLE_APPROVERS)) {
+            if (isMultipleApproversBetaEnabled) {
                 createApprovalWorkflowRules({approvalWorkflow: workflowToCreate, policy, addExpenseApprovalsTaskReport, rules: rulesCollection});
             } else {
                 createApprovalWorkflowAction({approvalWorkflow: workflowToCreate, policy, addExpenseApprovalsTaskReport});

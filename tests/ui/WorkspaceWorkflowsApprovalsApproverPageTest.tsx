@@ -5,13 +5,14 @@ import ApproverSelectionList from '@components/ApproverSelectionList';
 import ComposeProviders from '@components/ComposeProviders';
 import {LocaleContextProvider} from '@components/LocaleContextProvider';
 import OnyxListItemProvider from '@components/OnyxListItemProvider';
+import PersonalDetailsByLoginProvider from '@components/PersonalDetailsByLoginProvider';
 
 import Navigation from '@libs/Navigation/Navigation';
-import {convertPolicyEmployeesToApprovalWorkflows} from '@libs/WorkflowUtils';
+import {convertPolicyEmployeesToApprovalWorkflows, INITIAL_APPROVAL_WORKFLOW} from '@libs/WorkflowUtils';
 
 import WorkspaceWorkflowsApprovalsApproverPage from '@pages/workspace/workflows/approvals/WorkspaceWorkflowsApprovalsApproverPage';
 
-import {clearApprovalWorkflowApprover, selectApprovalWorkflowForEdit} from '@userActions/Workflow';
+import {clearApprovalWorkflowApprover, selectApprovalWorkflowForEdit, setApprovalWorkflow} from '@userActions/Workflow';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -117,7 +118,7 @@ async function editWorkflowWithRemovedApprover() {
 
 async function renderPage(approverIndex: number) {
     const result = render(
-        <ComposeProviders components={[OnyxListItemProvider, LocaleContextProvider]}>
+        <ComposeProviders components={[OnyxListItemProvider, PersonalDetailsByLoginProvider, LocaleContextProvider]}>
             <WorkspaceWorkflowsApprovalsApproverPage
                 // @ts-expect-error - the page only reads route.name and route.params
                 route={{name: SCREENS.WORKSPACE.WORKFLOWS_APPROVALS_APPROVER_CHANGE, params: {policyID: POLICY_ID, approverIndex}}}
@@ -227,5 +228,83 @@ describe('WorkspaceWorkflowsApprovalsApproverPage', () => {
         const removedRows = getRows().filter((row) => row.login === REMOVED_EMAIL);
         expect(removedRows).toHaveLength(1);
         expect(removedRows.at(0)?.isSelected).toBe(true);
+    });
+
+    describe("another step's additional approver for reports over the limit", () => {
+        beforeEach(async () => {
+            // Bob approves first, and his reports over the limit also go to Erin
+            await act(async () => {
+                setApprovalWorkflow({
+                    ...INITIAL_APPROVAL_WORKFLOW,
+                    action: CONST.APPROVAL_WORKFLOW.ACTION.CREATE,
+                    members: [{email: DAVE_EMAIL, displayName: DAVE_EMAIL}],
+                    approvers: [{email: BOB_EMAIL, displayName: BOB_EMAIL, approvalLimit: 5000, overLimitForwardsTo: ERIN_EMAIL}],
+                });
+            });
+            await waitForBatchedUpdatesWithAct();
+        });
+
+        it('is not offered as the next approver with the multiple approvers beta', async () => {
+            // Given the workflow is saved as approval workflow rules
+            await act(async () => {
+                await Onyx.set(ONYXKEYS.BETAS, [CONST.BETAS.MULTIPLE_APPROVERS]);
+            });
+            await waitForBatchedUpdatesWithAct();
+
+            // When the admin picks the second approver
+            await renderPage(1);
+
+            // Then Erin can't be picked, since the save rejects an over-limit approver who also approves in the workflow,
+            // while the admin still can
+            const logins = getRows().map((row) => row.login);
+            expect(logins).not.toContain(ERIN_EMAIL);
+            expect(logins).toContain(ADMIN_EMAIL);
+        });
+
+        it('is still offered when replacing the step whose own over-limit approver they are, with the multiple approvers beta', async () => {
+            // Given the workflow is saved as approval workflow rules
+            await act(async () => {
+                await Onyx.set(ONYXKEYS.BETAS, [CONST.BETAS.MULTIPLE_APPROVERS]);
+            });
+            await waitForBatchedUpdatesWithAct();
+
+            // When the admin replaces Bob, whose own reports over the limit go to Erin
+            await renderPage(0);
+
+            // Then Erin can be picked, since picking a new approver for that step clears its limit
+            expect(getRows().some((row) => row.login === ERIN_EMAIL)).toBe(true);
+        });
+
+        it('stays listed as the current pick of a step that already breaks the rule, with the multiple approvers beta', async () => {
+            // Given a saved workflow Bob > Erin, where Bob's reports over the limit go to Erin, on an account with the beta
+            await act(async () => {
+                await Onyx.set(ONYXKEYS.BETAS, [CONST.BETAS.MULTIPLE_APPROVERS]);
+                setApprovalWorkflow({
+                    ...INITIAL_APPROVAL_WORKFLOW,
+                    action: CONST.APPROVAL_WORKFLOW.ACTION.EDIT,
+                    members: [{email: DAVE_EMAIL, displayName: DAVE_EMAIL}],
+                    approvers: [
+                        {email: BOB_EMAIL, displayName: BOB_EMAIL, approvalLimit: 5000, overLimitForwardsTo: ERIN_EMAIL},
+                        {email: ERIN_EMAIL, displayName: ERIN_EMAIL},
+                    ],
+                });
+            });
+            await waitForBatchedUpdatesWithAct();
+
+            // When the admin opens Erin's step
+            await renderPage(1);
+
+            // Then Erin is still listed as the current pick, so the admin can see her and tap her to remove her
+            expect(getRows().find((row) => row.login === ERIN_EMAIL)?.isSelected).toBe(true);
+        });
+
+        it('is still offered as the next approver without the multiple approvers beta', async () => {
+            // Given the workflow is saved through the employeeList, without the beta
+            // When the admin picks the second approver
+            await renderPage(1);
+
+            // Then Erin can be picked, since the employeeList routing used without the beta stays as it was
+            expect(getRows().some((row) => row.login === ERIN_EMAIL)).toBe(true);
+        });
     });
 });

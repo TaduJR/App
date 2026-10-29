@@ -12,7 +12,7 @@ import {
     calculateApprovers,
     convertApprovalWorkflowToPolicyEmployees,
     getApprovalWorkflowRulesForPolicy,
-    getNonMemberApproverError,
+    getApproverRouteError,
     getOverLimitForwardsToDisplayName,
     getWorkflowMemberEmails,
     hasRuleBasedDefaultWorkflow,
@@ -823,18 +823,9 @@ function validateApprovalWorkflow(approvalWorkflow: ApprovalWorkflowOnyx, isMult
             errors[`approver-${approverIndex}`] = 'workflowsPage.approverCircularReference';
         }
 
-        const nonMemberApproverError = getNonMemberApproverError(approver, approvalWorkflow.isDefault);
-        if (nonMemberApproverError) {
-            errors[`approver-${approverIndex}`] = nonMemberApproverError;
-        }
-
-        // Someone who already approves in this workflow approves every report anyway, so the limit can't add them
-        if (
-            isMultipleApproversBetaEnabled &&
-            approver?.overLimitForwardsTo &&
-            approvalWorkflow.approvers.some((workflowApprover) => workflowApprover?.email === approver.overLimitForwardsTo)
-        ) {
-            errors[`approver-${approverIndex}`] = 'workflowsPage.overLimitApproverInWorkflow';
+        const approverRouteError = getApproverRouteError({approver, approvers: approvalWorkflow.approvers, isDefaultWorkflow: approvalWorkflow.isDefault, isMultipleApproversBetaEnabled});
+        if (approverRouteError) {
+            errors[`approver-${approverIndex}`] = approverRouteError;
         }
 
         // Validate that if overLimitForwardsTo is set, approvalLimit must also be set

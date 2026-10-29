@@ -311,6 +311,50 @@ describe('actions/Workflow', () => {
             // Then it saves, since the limit adds someone who wouldn't otherwise approve the report
             expect(isValid).toBe(true);
         });
+
+        it('should allow saving a workflow whose additional approver for reports over the limit is one of its approvers without the multiple approvers beta', async () => {
+            // Given a workflow saved through the employeeList, whose reports over the first approver's limit go to its
+            // second approver
+            const approvalWorkflow: ApprovalWorkflowOnyx = {
+                ...INITIAL_APPROVAL_WORKFLOW,
+                members: [{email: employee4Email, displayName: employee4Email}],
+                approvers: [
+                    {email: employee1Email, displayName: employee1Email, approvalLimit: 5000, overLimitForwardsTo: employee2Email},
+                    {email: employee2Email, displayName: employee2Email},
+                ],
+            };
+            await Onyx.set(ONYXKEYS.APPROVAL_WORKFLOW, approvalWorkflow);
+
+            // When the admin tries to save it without the beta
+            const isValid = validateApprovalWorkflow(approvalWorkflow, false);
+            await waitForBatchedUpdates();
+
+            // Then it saves, since only the approval workflow rules saved with the beta reject it
+            expect(isValid).toBe(true);
+        });
+
+        it('should explain the circular workflow rather than the additional approver when an approver repeats', async () => {
+            // Given the circular workflow 1 > 2 > 1, where the repeated approver's reports over the limit also go to 2
+            const approvalWorkflow: ApprovalWorkflowOnyx = {
+                ...INITIAL_APPROVAL_WORKFLOW,
+                members: [{email: employee4Email, displayName: employee4Email}],
+                approvers: [
+                    {email: employee1Email, displayName: employee1Email},
+                    {email: employee2Email, displayName: employee2Email},
+                    {email: employee1Email, displayName: employee1Email, isCircularReference: true, approvalLimit: 5000, overLimitForwardsTo: employee2Email},
+                ],
+            };
+            await Onyx.set(ONYXKEYS.APPROVAL_WORKFLOW, approvalWorkflow);
+
+            // When the admin tries to save it with the beta
+            const isValid = validateApprovalWorkflow(approvalWorkflow, true);
+            await waitForBatchedUpdates();
+
+            // Then the repeated approver shows the circular workflow error, since replacing them also clears their limit
+            expect(isValid).toBe(false);
+            const workflowState = await getOnyxValue(ONYXKEYS.APPROVAL_WORKFLOW);
+            expect(workflowState?.errors?.['approver-2']).toBe('workflowsPage.approverCircularReference');
+        });
     });
 
     describe('setApprovalWorkflowApprover', () => {

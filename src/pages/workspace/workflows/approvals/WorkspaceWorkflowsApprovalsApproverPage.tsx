@@ -18,7 +18,7 @@ import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavig
 import type {WorkspaceSplitNavigatorParamList} from '@libs/Navigation/types';
 import {addSMSDomainIfPhoneNumber} from '@libs/PhoneNumber';
 import {getDefaultApprover, getMemberAccountIDsForWorkspace, isExpensifyTeam, shouldFilterExpensifyTeam, shouldHideDynamicExternalWorkflowPeople} from '@libs/PolicyUtils';
-import {isApprovalWorkflowLockedByIntegration} from '@libs/WorkflowUtils';
+import {getOverLimitApproverEmails, isApprovalWorkflowLockedByIntegration} from '@libs/WorkflowUtils';
 
 import AccessOrNotFoundWrapper from '@pages/workspace/AccessOrNotFoundWrapper';
 import MemberRightIcon from '@pages/workspace/MemberRightIcon';
@@ -81,6 +81,10 @@ function WorkspaceWorkflowsApprovalsApproverPage({policy, personalDetails, isLoa
         allApprovers = [];
     } else {
         const membersEmail = approvalWorkflow?.members?.map((member) => member.email);
+
+        // See isOverLimitApproverInWorkflow. This step's own over-limit approver is left out, since picking a new
+        // approver here clears this step's limit.
+        const otherStepsOverLimitApproverEmails = getOverLimitApproverEmails(approversFromWorkflow ?? [], approverIndex);
         const approvers = Object.values(employeeList)
             .map((employee): SelectionListApprover | null => {
                 const email = employee.email;
@@ -100,6 +104,9 @@ function WorkspaceWorkflowsApprovalsApproverPage({policy, personalDetails, isLoa
                 // Do not allow the same email to be added twice
                 const isEmailAlreadyInApprovers = approversFromWorkflow?.some((approver, index) => approver?.email === email && index !== approverIndex);
                 if (isEmailAlreadyInApprovers && visibleSelectedApproverEmail !== email) {
+                    return null;
+                }
+                if (isMultipleApproversBetaEnabled && otherStepsOverLimitApproverEmails.has(email) && visibleSelectedApproverEmail !== email) {
                     return null;
                 }
                 if (!isMultipleApproversBetaEnabled && !isDefault && approverIndex === 0 && defaultApprover === email) {
