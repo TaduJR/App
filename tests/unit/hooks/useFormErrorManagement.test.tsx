@@ -39,7 +39,6 @@ const baseParams: Params = {
     isEditingSplitBill: false,
     isPolicyExpenseChat: false,
     isScanRequest: false,
-    canEnterScanFieldsManually: false,
     shouldShowMerchant: true,
     hasSmartScanFailed: false,
     didConfirmSplit: false,
@@ -47,8 +46,6 @@ const baseParams: Params = {
     isTypeSplit: false,
     shouldShowReadOnlySplits: false,
     isDistanceRequest: false,
-    shouldShowDate: false,
-    isReadOnly: false,
 };
 
 // A manual draft the user never typed a merchant into: `initMoneyRequest` seeds it with the "Expense" placeholder.
@@ -131,14 +128,15 @@ describe('useFormErrorManagement', () => {
         expect(result.current.errorMessage).toBeUndefined();
     });
 
-    it('errorMessage suppresses required/invalid amount errors (surfaced inline)', () => {
-        const {result: required} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
-        act(() => required.current.setFormError('common.error.fieldRequired'));
-        expect(required.current.errorMessage).toBeUndefined();
+    it('errorMessage leaves out the invalid amount error the amount input already shows', () => {
+        // Given an edited split, whose amount input flags an invalid amount through the form error as the user types
+        const {result} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
 
-        const {result: invalid} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
-        act(() => invalid.current.setFormError('common.error.invalidAmount'));
-        expect(invalid.current.errorMessage).toBeUndefined();
+        // When that error is set
+        act(() => result.current.setFormError('common.error.invalidAmount'));
+
+        // Then the footer doesn't repeat it under the button
+        expect(result.current.errorMessage).toBeUndefined();
     });
 
     it('errorMessage still shows the invalid amount error for a distance request (no inline surface)', () => {
@@ -201,12 +199,6 @@ describe('useFormErrorManagement', () => {
         }
     });
 
-    it('errorMessage suppresses the invalid merchant error (surfaced inline)', () => {
-        const {result} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
-        act(() => result.current.setFormError('iou.error.invalidMerchant'));
-        expect(result.current.errorMessage).toBeUndefined();
-    });
-
     it('treats the placeholder merchant of an untouched draft as empty, so it is only invalid while a merchant is required', () => {
         const {result: required} = renderHook(() => useFormErrorManagement({...baseParams, ...placeholderMerchantParams, isPolicyExpenseChat: true}), {wrapper: Wrapper});
         const {result: notRequired} = renderHook(() => useFormErrorManagement({...baseParams, ...placeholderMerchantParams, isPolicyExpenseChat: false}), {wrapper: Wrapper});
@@ -254,130 +246,5 @@ describe('useFormErrorManagement', () => {
 
         expect(untouched.current.isMerchantRequired).toBe(false);
         expect(amountEntered.current.isMerchantRequired).toBe(false);
-    });
-
-    it('clears the invalid merchant error once the recipient changes from a workspace chat to a user (#96593)', () => {
-        // Given an untouched manual draft (still carrying the placeholder merchant) headed for a workspace chat
-        const {result, rerender} = renderHook(
-            ({isPolicyExpenseChat}: {isPolicyExpenseChat: boolean}) => useFormErrorManagement({...baseParams, ...placeholderMerchantParams, isPolicyExpenseChat}),
-            {wrapper: Wrapper, initialProps: {isPolicyExpenseChat: true}},
-        );
-
-        // When confirming surfaces the "please enter a valid merchant" error
-        act(() => result.current.setFormError('iou.error.invalidMerchant'));
-        expect(result.current.formError).toBe('iou.error.invalidMerchant');
-
-        // Then switching the recipient to a user drops the merchant requirement and clears the error
-        rerender({isPolicyExpenseChat: false});
-        expect(result.current.formError).toBe('');
-    });
-
-    const manualRequiredParams = ({
-        isAmountSet,
-        created,
-        shouldShowDate = true,
-        isReadOnly = false,
-    }: {
-        isAmountSet: boolean;
-        created: string;
-        shouldShowDate?: boolean;
-        isReadOnly?: boolean;
-    }): Params => ({
-        ...baseParams,
-        shouldShowDate,
-        isReadOnly,
-        transaction: createMock<OnyxTypes.Transaction>({
-            transactionID: 'txn1',
-            iouRequestType: CONST.IOU.REQUEST_TYPE.MANUAL,
-            isAmountSet,
-            created,
-            comment: {},
-        }),
-    });
-
-    it('clears the required error once the amount is set when the date field is hidden, so a hidden date cannot strand it', () => {
-        // Given a confirmation that doesn't render the date field (a scan flow before its fields show), with no date yet
-        const {result, rerender} = renderHook((props: Params) => useFormErrorManagement(props), {
-            wrapper: Wrapper,
-            initialProps: manualRequiredParams({isAmountSet: false, created: '', shouldShowDate: false}),
-        });
-        act(() => result.current.setFormError('common.error.fieldRequired'));
-
-        // When the amount is filled, the empty date must not keep the error alive since it has no inline surface
-        rerender(manualRequiredParams({isAmountSet: true, created: '', shouldShowDate: false}));
-        expect(result.current.formError).toBe('');
-    });
-
-    it('clears the required error once the amount is set on a read-only confirmation, where the date is populated server-side', () => {
-        const {result, rerender} = renderHook((props: Params) => useFormErrorManagement(props), {
-            wrapper: Wrapper,
-            initialProps: manualRequiredParams({isAmountSet: false, created: '', isReadOnly: true}),
-        });
-        act(() => result.current.setFormError('common.error.fieldRequired'));
-
-        rerender(manualRequiredParams({isAmountSet: true, created: '', isReadOnly: true}));
-        expect(result.current.formError).toBe('');
-    });
-
-    it('keeps the required error alive while another receipt of a multi-scan is still partially filled', () => {
-        // Given a confirmation showing a complete receipt while a sibling one is partially filled. Confirming switches to
-        // the sibling, and the error has to survive the render where the complete receipt is still the one on screen.
-        const completeReceiptParams = (partiallyManuallyFilledScanID?: string): Params => ({
-            ...baseParams,
-            canEnterScanFieldsManually: true,
-            partiallyManuallyFilledScanID,
-            transaction: createMock<OnyxTypes.Transaction>({
-                transactionID: 'txn1',
-                iouRequestType: CONST.IOU.REQUEST_TYPE.SCAN,
-                isAmountSet: true,
-                isMerchantSet: true,
-                isCreatedSet: true,
-                comment: {},
-            }),
-        });
-
-        const partiallyFilledReceiptParams = (partiallyManuallyFilledScanID?: string): Params => ({
-            ...completeReceiptParams(partiallyManuallyFilledScanID),
-            transaction: createMock<OnyxTypes.Transaction>({
-                transactionID: 'txn1',
-                iouRequestType: CONST.IOU.REQUEST_TYPE.SCAN,
-                isAmountSet: false,
-                isMerchantSet: true,
-                isCreatedSet: true,
-                comment: {},
-            }),
-        });
-
-        const {result, rerender} = renderHook((props: Params) => useFormErrorManagement(props), {
-            wrapper: Wrapper,
-            initialProps: partiallyFilledReceiptParams('txn1'),
-        });
-        act(() => result.current.setFormError('common.error.fieldRequired'));
-
-        // Moving to a receipt that has nothing missing would clear the error, but a sibling is still partially filled
-        rerender(completeReceiptParams('txn2'));
-        expect(result.current.formError).toBe('common.error.fieldRequired');
-
-        // Once no receipt is partially filled any more the error clears, so confirmation is no longer blocked
-        rerender(completeReceiptParams(undefined));
-        expect(result.current.formError).toBe('');
-    });
-
-    it('keeps the shared required error until both the amount and the date are filled (#96568)', () => {
-        // Given a manual expense confirmed with both the amount and the date empty
-        const {result, rerender} = renderHook((props: Params) => useFormErrorManagement(props), {
-            wrapper: Wrapper,
-            initialProps: manualRequiredParams({isAmountSet: false, created: ''}),
-        });
-        act(() => result.current.setFormError('common.error.fieldRequired'));
-        expect(result.current.formError).toBe('common.error.fieldRequired');
-
-        // When only the amount is filled, the shared error must survive so the date keeps showing it inline
-        rerender(manualRequiredParams({isAmountSet: true, created: ''}));
-        expect(result.current.formError).toBe('common.error.fieldRequired');
-
-        // Then filling the date too clears it, so confirmation is no longer blocked
-        rerender(manualRequiredParams({isAmountSet: true, created: '2026-07-29'}));
-        expect(result.current.formError).toBe('');
     });
 });

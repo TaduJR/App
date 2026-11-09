@@ -15,7 +15,6 @@ import {arePolicyRulesEnabled, isTaxTrackingEnabled} from '@libs/PolicyUtils';
 import {getCategory, getCurrency, getMerchant, getRateID, hasValidModifiedAmount, isScanRequest as isScanRequestUtil} from '@libs/TransactionUtils';
 
 import CONST from '@src/CONST';
-import type {TranslationPaths} from '@src/languages/types';
 
 import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useRef, useState} from 'react';
@@ -23,18 +22,12 @@ import {useEffect, useRef, useState} from 'react';
 import type {ConfirmationDistanceState, ConfirmationListData, UseConfirmationListDataParams} from './types';
 
 import useConfirmationAmount from './useConfirmationAmount';
+import useConfirmationFieldErrors from './useConfirmationFieldErrors';
 import useConfirmationPolicyData from './useConfirmationPolicyData';
 import useConfirmationValidation from './useConfirmationValidation';
 import useFormErrorManagement from './useFormErrorManagement';
 import useParticipantSection from './useParticipantSection';
 import useTransactionReportForConfirmation from './useTransactionReportForConfirmation';
-
-/**
- * The errors the amount / merchant / date fields render inline rather than in the footer. Raising one of these is
- * only visible if those fields are on screen, so every reveal site reads this same set: the shared confirmation
- * switches to the transaction whose fields need fixing, and the scan variant expands "Show more".
- */
-const INLINE_FIELD_ERROR_KEYS = new Set<TranslationPaths | ''>(['common.error.fieldRequired', 'common.error.invalidAmount', 'iou.error.invalidMerchant']);
 
 /**
  * Everything the confirmation surface needs regardless of which expense type is being confirmed: the participant
@@ -160,8 +153,7 @@ function useConfirmationListDataWithPolicy({
     const isTypeSplit = iouType === CONST.IOU.TYPE.SPLIT;
     const shouldShowReadOnlySplits = isPolicyExpenseChat || isReadOnly || isScanRequest;
 
-    // Both the validation gate and the clear gate below key off this, so it is computed once here rather than
-    // being re-derived per hook, where the two could be updated independently.
+    // The date field is rendered under the same condition, so a hidden date is never reported missing.
     const shouldShowDate = shouldShowConfirmationDate(shouldShowSmartScanFields, isDistanceRequest);
 
     const {formError, setFormError, clearFormErrors, shouldDisplayFieldError, isMerchantEmpty, isMerchantFieldValid, isMerchantRequired, errorMessage} = useFormErrorManagement({
@@ -177,8 +169,6 @@ function useConfirmationListDataWithPolicy({
         isEditingSplitBill,
         isPolicyExpenseChat,
         isScanRequest,
-        canEnterScanFieldsManually,
-        partiallyManuallyFilledScanID,
         shouldShowMerchant,
         hasSmartScanFailed,
         didConfirmSplit,
@@ -186,8 +176,6 @@ function useConfirmationListDataWithPolicy({
         isTypeSplit,
         shouldShowReadOnlySplits,
         isDistanceRequest,
-        isReadOnly,
-        shouldShowDate,
     });
 
     const isCategoryRequired = !!policy?.requiresCategory && !isTypeInvoice;
@@ -228,7 +216,7 @@ function useConfirmationListDataWithPolicy({
         onOpenParticipantPicker,
     });
 
-    const {validate} = useConfirmationValidation({
+    const {validate, fieldErrors} = useConfirmationValidation({
         transaction,
         transactionReport,
         transactionID,
@@ -264,14 +252,7 @@ function useConfirmationListDataWithPolicy({
         isTaxAmountEmpty,
     });
 
-    // The partially filled receipt may not be the one on screen, so bring it into view to show its inline errors.
-    const validateAndRevealFields: typeof validate = (paymentType) => {
-        const result = validate(paymentType);
-        if (result?.errorKey && INLINE_FIELD_ERROR_KEYS.has(result.errorKey) && partiallyManuallyFilledScanID && partiallyManuallyFilledScanID !== transactionID) {
-            onSwitchToTransaction?.(partiallyManuallyFilledScanID);
-        }
-        return result;
-    };
+    const {visibleFieldErrors, fieldErrorSummary, revealFieldErrors} = useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction});
 
     const confirm = buildConfirmAction({
         iouType,
@@ -280,8 +261,9 @@ function useConfirmationListDataWithPolicy({
         routeError,
         formError,
         isDelegateAccessRestricted,
-        validate: validateAndRevealFields,
+        validate,
         setFormError,
+        revealFieldErrors,
         setDidConfirmSplit,
         showDelegateNoAccessModal,
         onConfirm,
@@ -298,7 +280,7 @@ function useConfirmationListDataWithPolicy({
         shouldShowTax,
         hasParticipantSection: sections.length > 0,
     };
-    const errorState = {shouldDisplayFieldError, formError, clearFormErrors, setFormError};
+    const errorState = {shouldDisplayFieldError, formError, fieldErrors: visibleFieldErrors, clearFormErrors, setFormError};
 
     return {
         /** Handed straight to `ConfirmationListLayout`. The variant adds its `listFooterContent`, its `fieldFlags`, and its controllers as children. */
@@ -319,7 +301,7 @@ function useConfirmationListDataWithPolicy({
                 isConfirmed,
                 isConfirming,
                 receiptOptions,
-                errorMessage,
+                errorMessage: errorMessage ?? fieldErrorSummary,
                 expensesNumber,
                 showRemoveExpenseConfirmModal,
                 transaction,
@@ -429,4 +411,4 @@ function useConfirmationListData(props: MoneyRequestConfirmationListProps & Pick
 }
 
 export default useConfirmationListData;
-export {INLINE_FIELD_ERROR_KEYS, useConfirmationListDataWithPolicy};
+export {useConfirmationListDataWithPolicy};

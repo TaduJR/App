@@ -1,0 +1,65 @@
+/**
+ * Owns when the amount, date and merchant errors of the money request confirmation become visible, and the summary
+ * shown above its confirm button while a required one is missing.
+ */
+import type {ConfirmationFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
+import {NO_FIELD_ERRORS} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
+
+import useLocalize from '@hooks/useLocalize';
+
+import {useState} from 'react';
+
+type UseConfirmationFieldErrorsParams = {
+    /** The errors the amount, date and merchant fields would show now, from `useConfirmationValidation` */
+    fieldErrors: ConfirmationFieldErrors;
+
+    /** ID of a partially filled Scan among the transactions being confirmed. Can name a receipt other than this one. */
+    partiallyManuallyFilledScanID: string | undefined;
+
+    /** Brings another receipt of a multi-scan on screen */
+    onSwitchToTransaction: ((transactionID: string) => void) | undefined;
+};
+
+type UseConfirmationFieldErrorsResult = {
+    /** The field errors to render. Empty until a confirm is blocked by one of them. */
+    visibleFieldErrors: ConfirmationFieldErrors;
+
+    /** The summary shown above the confirm button while a required field is missing, which may be scrolled out of view */
+    fieldErrorSummary: string | undefined;
+
+    /** Shows the field errors after a confirm they blocked, bringing the receipt they belong to on screen */
+    revealFieldErrors: () => void;
+};
+
+/** The errors themselves are derived from the transaction, so only the fact that a confirm was blocked is kept as state. */
+function useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction}: UseConfirmationFieldErrorsParams): UseConfirmationFieldErrorsResult {
+    const {translate} = useLocalize();
+    const [shouldShowFieldErrors, setShouldShowFieldErrors] = useState(false);
+
+    const hasFieldErrors = Object.keys(fieldErrors).length > 0 || !!partiallyManuallyFilledScanID;
+
+    // Hide the errors again once everything is filled in, so a field the user empties afterwards is only flagged on
+    // the next confirm, the same way it was before the first one. A partially filled sibling receipt keeps them shown.
+    if (shouldShowFieldErrors && !hasFieldErrors) {
+        setShouldShowFieldErrors(false);
+    }
+
+    const isRequiredFieldMissing = Object.values(fieldErrors).includes('common.error.fieldRequired') || !!partiallyManuallyFilledScanID;
+
+    const revealFieldErrors = () => {
+        setShouldShowFieldErrors(true);
+
+        // When the receipt on screen is complete, the blocking one is a partially filled sibling, so bring it into view.
+        if (Object.keys(fieldErrors).length === 0 && partiallyManuallyFilledScanID) {
+            onSwitchToTransaction?.(partiallyManuallyFilledScanID);
+        }
+    };
+
+    return {
+        visibleFieldErrors: shouldShowFieldErrors ? fieldErrors : NO_FIELD_ERRORS,
+        fieldErrorSummary: shouldShowFieldErrors && isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : undefined,
+        revealFieldErrors,
+    };
+}
+
+export default useConfirmationFieldErrors;

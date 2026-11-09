@@ -32,7 +32,7 @@ function renderMerchantField(props: Partial<React.ComponentProps<typeof Merchant
                 <MerchantField
                     isMerchantRequired
                     shouldDisplayFieldError={false}
-                    formError=""
+                    fieldError={undefined}
                     {...props}
                 />
             </ExpenseFormLayoutContext.Provider>
@@ -83,12 +83,12 @@ describe('MerchantField read-only dropdown row', () => {
     });
 
     it.each([
-        {formError: '', shouldDisplayFieldError: true, expectedError: 'common.error.fieldRequired'},
-        {formError: 'iou.error.invalidMerchant', shouldDisplayFieldError: false, expectedError: 'iou.error.invalidMerchant'},
-    ])('shows $expectedError on the locked merchant row', ({formError, shouldDisplayFieldError, expectedError}) => {
+        {fieldError: undefined, shouldDisplayFieldError: true, expectedError: 'common.error.fieldRequired'},
+        {fieldError: 'iou.error.invalidMerchant' as const, shouldDisplayFieldError: false, expectedError: 'iou.error.invalidMerchant'},
+    ])('shows $expectedError on the locked merchant row', ({fieldError, shouldDisplayFieldError, expectedError}) => {
         // Given a merchant validation failure that must remain visible even when the field is locked
         // When the bordered confirmation form displays that failure
-        renderMerchantField({formError, shouldDisplayFieldError});
+        renderMerchantField({fieldError, shouldDisplayFieldError});
 
         // Then the actual validation message is preserved and the row still has no edit control
         expect(screen.getByText(expectedError)).toBeOnTheScreen();

@@ -1,0 +1,153 @@
+/**
+ * The errors the amount, date and merchant fields of the confirmation show under their inputs. They are computed
+ * from the transaction on every render, so an error goes away as soon as its field is fixed and nothing has to
+ * remember to clear it. The same map blocks confirmation, flags each field and drives the summary above the confirm
+ * button, so those three can't disagree about what is missing.
+ */
+import {isP2PRecipient, isParticipantP2P} from '@libs/IOUUtils';
+import {isConfirmationAmountMissing, isConfirmationDateMissing, isConfirmationMerchantMissing, isValidMoneyRequestAmount} from '@libs/MoneyRequestUtils';
+import {isMerchantMissing, isScanRequest} from '@libs/TransactionUtils';
+import {isMerchantBlank, isValidInputLength} from '@libs/ValidationUtils';
+
+import type {IOUType} from '@src/CONST';
+import CONST from '@src/CONST';
+import type {TranslationPaths} from '@src/languages/types';
+import type * as OnyxTypes from '@src/types/onyx';
+
+import type {OnyxEntry} from 'react-native-onyx';
+
+type ConfirmationFieldErrors = {
+    amount?: TranslationPaths;
+    date?: TranslationPaths;
+    merchant?: TranslationPaths;
+};
+
+type GetConfirmationFieldErrorsParams = {
+    /** Total amount of the expense, in the smallest currency unit */
+    iouAmount: number;
+
+    iouType: IOUType;
+
+    iouMerchant: string | undefined;
+
+    /** Whether this surface offers manual entry of the amount / merchant / date. False for splits, test receipts and moved tracked expenses. */
+    canEnterScanFieldsManually: boolean;
+
+    /** Whether the expense goes to a workspace chat, the only destination where a manually entered Scan needs a merchant */
+    isPolicyExpenseChat: boolean;
+
+    /** Whether the date field is rendered. A hidden date can't be filled in, so it is never reported missing. */
+    shouldShowDate: boolean;
+
+    /** Whether the confirmation is read-only. A read-only date is populated server-side, so it can't be missing. */
+    isReadOnly: boolean;
+
+    isEditingSplitBill: boolean | undefined;
+
+    isMerchantRequired: boolean | undefined;
+
+    /** Whether the merchant passes full validation (length, required, disallowed values) */
+    isMerchantFieldValid: boolean;
+
+    /** Whether the merchant is empty or a placeholder, as `isMerchantMissing` sees it on the transaction */
+    isMerchantEmpty: boolean;
+
+    /** When editing a split bill, whether its SmartScan failed with fields still missing */
+    shouldDisplayFieldError: boolean;
+
+    isDistanceRequest: boolean;
+
+    isTimeRequest: boolean;
+
+    currentUserAccountID: number;
+};
+
+/** A stable empty map for when no field error is shown, so the fields don't receive a new object on every render. */
+const NO_FIELD_ERRORS: Readonly<ConfirmationFieldErrors> = Object.freeze({});
+
+function getAmountFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, params: GetConfirmationFieldErrorsParams): TranslationPaths | undefined {
+    const {iouAmount, iouType, canEnterScanFieldsManually, isPolicyExpenseChat, isEditingSplitBill, isDistanceRequest, isTimeRequest, currentUserAccountID} = params;
+    const firstParticipant = transaction?.participants?.at(0);
+    const isP2P = isParticipantP2P(firstParticipant);
+
+    // A manual expense to a person can't be $0. Scan, time and distance expenses are exempt, since their amount is
+    // normally read off the receipt or computed rather than typed.
+    if (!isScanRequest(transaction) && !isTimeRequest && !isDistanceRequest && iouAmount === 0 && isP2P) {
+        return 'common.error.invalidAmount';
+    }
+
+    // Per diem, distance and time set the amount themselves, and a scan reads a blank amount off the receipt.
+    if (isConfirmationAmountMissing(transaction, canEnterScanFieldsManually, isPolicyExpenseChat)) {
+        return 'common.error.fieldRequired';
+    }
+
+    // A Scan amount is optional behind "Show more", but one the user does type is checked like a manual one. The Scan
+    // flow also lets the user pick a 1:1 recipient before entering the amount, so the participant picker's
+    // negative-amount guard never runs for it and the amount has to be checked here.
+    const canAmountBeTyped = transaction?.iouRequestType === CONST.IOU.REQUEST_TYPE.MANUAL || canEnterScanFieldsManually;
+    if (
+        canAmountBeTyped &&
+        transaction?.isAmountSet &&
+        !isTimeRequest &&
+        !isDistanceRequest &&
+        !isEditingSplitBill &&
+        !isValidMoneyRequestAmount(iouAmount, iouType, !isP2PRecipient(firstParticipant, currentUserAccountID), isP2P)
+    ) {
+        return 'common.error.invalidAmount';
+    }
+
+    return undefined;
+}
+
+function getMerchantFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, params: GetConfirmationFieldErrorsParams): TranslationPaths | undefined {
+    const {iouMerchant, canEnterScanFieldsManually, isPolicyExpenseChat, isEditingSplitBill, isMerchantRequired, isMerchantFieldValid, isMerchantEmpty, shouldDisplayFieldError} = params;
+
+    if (!isValidInputLength(iouMerchant ?? '', CONST.MERCHANT_NAME_MAX_BYTES).isValid) {
+        return 'iou.error.invalidMerchant';
+    }
+
+    // The amount, merchant and date of a Scan are all-or-nothing, so once one is entered a blank merchant is missing.
+    if (isConfirmationMerchantMissing(transaction, canEnterScanFieldsManually, isPolicyExpenseChat)) {
+        return 'common.error.fieldRequired';
+    }
+
+    if (!isMerchantRequired) {
+        // An optional merchant is only checked once the user typed one in.
+        return transaction?.isMerchantSet && !isMerchantFieldValid ? 'iou.error.invalidMerchant' : undefined;
+    }
+
+    // A split draft doesn't record whether the user typed its merchant, so a placeholder the user typed can't be told
+    // apart from one the split was seeded with, and an edited split keeps the generic invalid message for both.
+    if (isEditingSplitBill) {
+        return isMerchantEmpty || (shouldDisplayFieldError && isMerchantMissing(transaction)) ? 'iou.error.invalidMerchant' : undefined;
+    }
+
+    if (isMerchantFieldValid) {
+        return undefined;
+    }
+
+    // A required merchant left blank reads the same as the other required fields, and only a typed one is "invalid".
+    return isMerchantBlank(transaction?.isMerchantSet, iouMerchant) ? 'common.error.fieldRequired' : 'iou.error.invalidMerchant';
+}
+
+/** Returns the error each inline field of the confirmation would show right now, keyed by field. Empty when nothing blocks. */
+function getConfirmationFieldErrors(transaction: OnyxEntry<OnyxTypes.Transaction>, params: GetConfirmationFieldErrorsParams): ConfirmationFieldErrors {
+    const {shouldShowDate, isReadOnly, canEnterScanFieldsManually, isPolicyExpenseChat} = params;
+    const amount = getAmountFieldError(transaction, params);
+    const date = isConfirmationDateMissing(transaction, shouldShowDate, isReadOnly, canEnterScanFieldsManually, isPolicyExpenseChat) ? 'common.error.fieldRequired' : undefined;
+    const merchant = getMerchantFieldError(transaction, params);
+
+    if (!amount && !date && !merchant) {
+        return NO_FIELD_ERRORS;
+    }
+
+    return {
+        ...(amount && {amount}),
+        ...(date && {date}),
+        ...(merchant && {merchant}),
+    };
+}
+
+export default getConfirmationFieldErrors;
+export {NO_FIELD_ERRORS};
+export type {ConfirmationFieldErrors, GetConfirmationFieldErrorsParams};

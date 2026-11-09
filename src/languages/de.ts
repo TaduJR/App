@@ -1751,6 +1751,7 @@ const translations: TranslationDeepObject<typeof en> = {
             atLeastTwoDifferentWaypoints: 'Bitte gib mindestens zwei verschiedene Adressen ein',
             splitExpenseMultipleParticipantsErrorMessage: 'Eine Ausgabe kann nicht zwischen einem Workspace und anderen Mitgliedern aufgeteilt werden. Bitte aktualisiere deine Auswahl.',
             invalidMerchant: 'Bitte gib einen gültigen Händler ein',
+            enterRequiredFields: 'Bitte fülle die Pflichtfelder aus',
             atLeastOneAttendee: 'Mindestens eine teilnehmende Person muss ausgewählt werden',
             invalidQuantity: 'Bitte gib eine gültige Menge ein',
             quantityGreaterThanZero: 'Die Menge muss größer als null sein',

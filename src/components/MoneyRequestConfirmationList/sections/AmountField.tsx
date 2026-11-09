@@ -1,5 +1,6 @@
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import {useConfirmationFields} from '@components/MoneyRequestConfirmationFields/context';
+import type {ConfirmationFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 import NumberWithSymbolForm from '@components/NumberWithSymbolForm';
 import type {BaseTextInputRef} from '@components/TextInput/BaseTextInput/types';
 
@@ -20,7 +21,6 @@ import {
 import {convertToBackendAmount, convertToFrontendAmountAsString, getLocalizedCurrencySymbol} from '@libs/CurrencyUtils';
 import {canUseTouchScreen} from '@libs/DeviceCapabilities';
 import {calculateAmount, isMovingTransactionFromTrackExpense, isP2PRecipient, isParticipantP2P} from '@libs/IOUUtils';
-import {isConfirmationAmountMissing} from '@libs/MoneyRequestUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import navigationRef from '@libs/Navigation/navigationRef';
 import {shouldEnableNegative} from '@libs/ReportUtils';
@@ -59,6 +59,10 @@ type AmountFieldProps = {
     shouldShowTimeRequestFields: boolean;
     shouldDisplayFieldError: boolean;
     formError: string;
+
+    /** The errors of a blocked confirm. Only the `amount` entry is shown here. */
+    fieldErrors: ConfirmationFieldErrors;
+
     policy: OnyxEntry<OnyxTypes.Policy>;
     clearFormErrors: (errors: string[]) => void;
     setFormError: (error: TranslationPaths | '') => void;
@@ -73,13 +77,14 @@ function AmountField({
     shouldShowTimeRequestFields,
     shouldDisplayFieldError,
     formError,
+    fieldErrors,
     policy,
     clearFormErrors,
     setFormError,
 }: AmountFieldProps) {
     const isScreenFocused = useIsFocused();
     const navigation = useNavigation();
-    const {isEditingSplitBill, canEnterScanFieldsManually, isPolicyExpenseChat, isReadOnly, didConfirm, transactionID, action, iouType, reportID, reportActionID} = useConfirmationFields();
+    const {isEditingSplitBill, canEnterScanFieldsManually, isReadOnly, didConfirm, transactionID, action, iouType, reportID, reportActionID} = useConfirmationFields();
     // Filled by the forms that offer a receipt from beside the amount field rather than from a full-width empty
     // state, with their compact add-receipt button.
     const {amountTrailingAction, shouldUseDropdownRows} = useExpenseFormLayout();
@@ -114,20 +119,13 @@ function AmountField({
     // so its row is locked the same way until the scan finishes.
     const canOpenAmountPage = !isReadOnly && !isDistanceRequest && !shouldShowTimeRequestFields && !isScanningReceipt;
     const isP2P = isParticipantP2P(getMoneyRequestParticipantsFromReport(report, currentUserPersonalDetails.accountID).at(0));
-    // `common.error.fieldRequired` is shared with the date field, so only surface it on the amount input when the
-    // amount itself is the missing value. `isConfirmationAmountMissing` is the same predicate validation raises the
-    // error from, so a scan expense (where the amount is read off the receipt whenever the user leaves the field
-    // blank) can't show a phantom required error under a field that is deliberately empty.
-    const shouldShowAmountRequiredError = formError === 'common.error.fieldRequired' && isConfirmationAmountMissing(transactionSlice, canEnterScanFieldsManually, isPolicyExpenseChat);
-    const shouldShowAmountInvalidError = formError === 'common.error.invalidAmount';
-    const shouldShowAmountMissingError = shouldDisplayFieldError && amountIsMissing;
+    // Editing a split bill flags an invalid amount as the user types, through the form error rather than the field errors.
+    const amountErrorKey = formError === 'common.error.invalidAmount' ? 'common.error.invalidAmount' : fieldErrors.amount;
 
     let amountFieldErrorText = '';
-    if (shouldShowAmountInvalidError) {
-        amountFieldErrorText = translate('common.error.invalidAmount');
-    } else if (shouldShowAmountRequiredError) {
-        amountFieldErrorText = translate('common.error.fieldRequired');
-    } else if (shouldShowAmountMissingError) {
+    if (amountErrorKey) {
+        amountFieldErrorText = translate(amountErrorKey);
+    } else if (shouldDisplayFieldError && amountIsMissing) {
         amountFieldErrorText = translate('common.error.enterAmount');
     }
 

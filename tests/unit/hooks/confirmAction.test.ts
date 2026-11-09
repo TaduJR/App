@@ -25,6 +25,7 @@ function makeBase(overrides: Partial<Params> = {}): Params {
         isDelegateAccessRestricted: false,
         validate: jest.fn(() => ({errorKey: null})),
         setFormError: jest.fn(),
+        revealFieldErrors: jest.fn(),
         setDidConfirmSplit: jest.fn(),
         showDelegateNoAccessModal: jest.fn(),
         onConfirm: jest.fn(),
@@ -54,9 +55,29 @@ describe('buildConfirmAction', () => {
     });
 
     it('sets form error when validation returns an errorKey', () => {
-        const params = makeBase({validate: jest.fn(() => ({errorKey: 'iou.error.invalidMerchant'}))});
+        // Given a confirmation with no participant, an error that has no field of its own
+        const params = makeBase({validate: jest.fn(() => ({errorKey: 'iou.error.noParticipantSelected'}))});
+
+        // When the user confirms
         buildConfirmAction(params)({paymentType: undefined});
-        expect(params.setFormError).toHaveBeenCalledWith('iou.error.invalidMerchant');
+
+        // Then the error becomes the form error shown above the button, and no field errors are revealed
+        expect(params.setFormError).toHaveBeenCalledWith('iou.error.noParticipantSelected');
+        expect(params.revealFieldErrors).not.toHaveBeenCalled();
+        expect(params.onConfirm).not.toHaveBeenCalled();
+    });
+
+    it('reveals a field error on its field instead of setting it as the form error', () => {
+        // Given a confirmation whose amount field is missing a value, while an error from an earlier confirm is still set
+        const params = makeBase({formError: 'violations.categoryOutOfPolicy', validate: jest.fn(() => ({errorKey: 'common.error.fieldRequired', isFieldError: true}))});
+
+        // When the user confirms
+        buildConfirmAction(params)({paymentType: undefined});
+
+        // Then the field errors are revealed, and the old form error is cleared so the required fields summary takes the footer instead of it
+        expect(params.revealFieldErrors).toHaveBeenCalledTimes(1);
+        expect(params.setFormError).toHaveBeenCalledTimes(1);
+        expect(params.setFormError).toHaveBeenCalledWith('');
         expect(params.onConfirm).not.toHaveBeenCalled();
     });
 
@@ -87,13 +108,13 @@ describe('buildConfirmAction', () => {
     it('blocks the company-info step for an invalid invoice instead of routing past validation (#96579)', () => {
         // Given an invoice whose sender workspace has no company info yet, and a cleared date
         mockHasInvoicingDetails.mockReturnValueOnce(false);
-        const params = makeBase({iouType: CONST.IOU.TYPE.INVOICE, validate: jest.fn(() => ({errorKey: 'common.error.fieldRequired'}))});
+        const params = makeBase({iouType: CONST.IOU.TYPE.INVOICE, validate: jest.fn(() => ({errorKey: 'common.error.fieldRequired', isFieldError: true}))});
 
         // When the user confirms
         buildConfirmAction(params)({paymentType: undefined});
 
         // Then the error surfaces and the company info step - which sends the invoice without revalidating - is not reached
-        expect(params.setFormError).toHaveBeenCalledWith('common.error.fieldRequired');
+        expect(params.revealFieldErrors).toHaveBeenCalledTimes(1);
         expect(mockNavigate).not.toHaveBeenCalled();
         expect(params.onConfirm).not.toHaveBeenCalled();
     });

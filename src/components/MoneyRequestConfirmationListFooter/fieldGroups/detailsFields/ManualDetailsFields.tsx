@@ -48,7 +48,7 @@ function ManualDetailsFields({policy, amountDisplay, requiredFlags, errorState}:
                 <MerchantField
                     isMerchantRequired={requiredFlags.isMerchantRequired}
                     shouldDisplayFieldError={errorState.shouldDisplayFieldError}
-                    formError={errorState.formError}
+                    fieldError={errorState.fieldErrors.merchant}
                 />
             )}
 
