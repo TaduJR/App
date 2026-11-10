@@ -6,13 +6,20 @@ import useConfirmationFieldErrors from '@components/MoneyRequestConfirmationList
 
 jest.mock('@hooks/useLocalize', () => () => ({translate: (key: string) => key}));
 
-type Props = {fieldErrors: ConfirmationFieldErrors; partiallyManuallyFilledScanID?: string; onSwitchToTransaction?: (transactionID: string) => void};
+type Props = {
+    fieldErrors: ConfirmationFieldErrors;
+    partiallyManuallyFilledScanID?: string;
+    onSwitchToTransaction?: (transactionID: string) => void;
+    formErrorMessage?: string;
+    hasRouteError?: boolean;
+};
 
 const MISSING_AMOUNT: ConfirmationFieldErrors = {amount: 'common.error.fieldRequired'};
 
 function renderFieldErrors(initialProps: Props) {
     return renderHook(
-        ({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction}: Props) => useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction}),
+        ({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, hasRouteError = false}: Props) =>
+            useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, hasRouteError}),
         {initialProps},
     );
 }
@@ -25,7 +32,7 @@ describe('useConfirmationFieldErrors', () => {
 
         // Then neither the field nor the footer flags anything yet
         expect(result.current.visibleFieldErrors).toBe(NO_FIELD_ERRORS);
-        expect(result.current.fieldErrorSummary).toBeUndefined();
+        expect(result.current.footerErrorMessage).toBeUndefined();
     });
 
     it('shows the field errors and the footer summary once a confirm is blocked', () => {
@@ -37,7 +44,7 @@ describe('useConfirmationFieldErrors', () => {
 
         // Then the amount shows its error, and the summary above the button explains the block even if the amount is scrolled away
         expect(result.current.visibleFieldErrors).toEqual(MISSING_AMOUNT);
-        expect(result.current.fieldErrorSummary).toBe('iou.error.enterRequiredFields');
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
     });
 
     it('does not show the required fields summary when every field error is an invalid value', () => {
@@ -49,7 +56,7 @@ describe('useConfirmationFieldErrors', () => {
 
         // Then the field shows it, but the summary that asks for required fields stays out of the footer
         expect(result.current.visibleFieldErrors).toEqual({amount: 'common.error.invalidAmount'});
-        expect(result.current.fieldErrorSummary).toBeUndefined();
+        expect(result.current.footerErrorMessage).toBeUndefined();
     });
 
     it('keeps the errors shown while any field is still missing, and hides them once all are filled in', () => {
@@ -62,21 +69,51 @@ describe('useConfirmationFieldErrors', () => {
 
         // Then the merchant and the summary still show
         expect(result.current.visibleFieldErrors).toEqual({merchant: 'common.error.fieldRequired'});
-        expect(result.current.fieldErrorSummary).toBe('iou.error.enterRequiredFields');
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
 
         // When the merchant is filled in as well
         rerender({fieldErrors: NO_FIELD_ERRORS});
 
         // Then nothing is flagged
         expect(result.current.visibleFieldErrors).toBe(NO_FIELD_ERRORS);
-        expect(result.current.fieldErrorSummary).toBeUndefined();
+        expect(result.current.footerErrorMessage).toBeUndefined();
 
         // When the user empties a field again afterwards
         rerender({fieldErrors: MISSING_AMOUNT});
 
         // Then it is only flagged on the next blocked confirm, as before the first one
         expect(result.current.visibleFieldErrors).toBe(NO_FIELD_ERRORS);
-        expect(result.current.fieldErrorSummary).toBeUndefined();
+        expect(result.current.footerErrorMessage).toBeUndefined();
+    });
+
+    it('puts the summary over a form error raised elsewhere, and leaves that error to block once the fields are filled in', () => {
+        // Given a distance expense whose rate error is in the footer, and whose date is missing
+        const rateError = 'iou.error.invalidRate';
+        const {result, rerender} = renderFieldErrors({fieldErrors: {date: 'common.error.fieldRequired'}, formErrorMessage: rateError});
+
+        // When a confirm is blocked by the missing date
+        act(() => result.current.revealFieldErrors());
+
+        // Then the summary takes the footer, since the date may be scrolled out of view
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
+
+        // When the date is filled in while the rate is still out of policy
+        rerender({fieldErrors: NO_FIELD_ERRORS, formErrorMessage: rateError});
+
+        // Then the rate error is back in the footer, as it was never cleared and still blocks confirming
+        expect(result.current.footerErrorMessage).toBe(rateError);
+    });
+
+    it('keeps a route error in the footer over the summary', () => {
+        // Given a distance expense whose route failed to load, and whose date is missing
+        const routeError = 'Could not load the route';
+        const {result} = renderFieldErrors({fieldErrors: {date: 'common.error.fieldRequired'}, formErrorMessage: routeError, hasRouteError: true});
+
+        // When the field errors are revealed
+        act(() => result.current.revealFieldErrors());
+
+        // Then the route error stays, since the expense can't be confirmed until the route loads
+        expect(result.current.footerErrorMessage).toBe(routeError);
     });
 
     it('brings the partially filled sibling receipt on screen when the receipt on screen is complete', () => {
@@ -111,12 +148,12 @@ describe('useConfirmationFieldErrors', () => {
 
         // When the complete receipt is still the one on screen
         // Then the summary still explains why the confirm is blocked
-        expect(result.current.fieldErrorSummary).toBe('iou.error.enterRequiredFields');
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
 
         // When no receipt is partially filled any more
         rerender({fieldErrors: NO_FIELD_ERRORS, partiallyManuallyFilledScanID: undefined});
 
         // Then the summary goes away
-        expect(result.current.fieldErrorSummary).toBeUndefined();
+        expect(result.current.footerErrorMessage).toBeUndefined();
     });
 });

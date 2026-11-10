@@ -18,21 +18,33 @@ type UseConfirmationFieldErrorsParams = {
 
     /** Brings another receipt of a multi-scan on screen */
     onSwitchToTransaction: ((transactionID: string) => void) | undefined;
+
+    /** The footer message built from the form error by `useFormErrorManagement`, which already puts a route error first */
+    formErrorMessage: string | undefined;
+
+    /** Whether the route has an error, which keeps that error in the footer over the required fields summary */
+    hasRouteError: boolean;
 };
 
 type UseConfirmationFieldErrorsResult = {
     /** The field errors to render. Empty until a confirm is blocked by one of them. */
     visibleFieldErrors: ConfirmationFieldErrors;
 
-    /** The summary shown above the confirm button while a required field is missing, which may be scrolled out of view */
-    fieldErrorSummary: string | undefined;
+    /** The message above the confirm button: a route error, then the required fields summary while it applies, then the form error */
+    footerErrorMessage: string | undefined;
 
     /** Shows the field errors after a confirm they blocked, bringing the receipt they belong to on screen */
     revealFieldErrors: () => void;
 };
 
 /** The errors themselves are derived from the transaction, so only the fact that a confirm was blocked is kept as state. */
-function useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction}: UseConfirmationFieldErrorsParams): UseConfirmationFieldErrorsResult {
+function useConfirmationFieldErrors({
+    fieldErrors,
+    partiallyManuallyFilledScanID,
+    onSwitchToTransaction,
+    formErrorMessage,
+    hasRouteError,
+}: UseConfirmationFieldErrorsParams): UseConfirmationFieldErrorsResult {
     const {translate} = useLocalize();
     const [shouldShowFieldErrors, setShouldShowFieldErrors] = useState(false);
 
@@ -55,9 +67,12 @@ function useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID,
         }
     };
 
+    const fieldErrorSummary = shouldShowFieldErrors && isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : undefined;
+
     return {
         visibleFieldErrors: shouldShowFieldErrors ? fieldErrors : NO_FIELD_ERRORS,
-        fieldErrorSummary: shouldShowFieldErrors && isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : undefined,
+        // The summary only covers a form error raised elsewhere, like the distance rate one, so that error stays set and still blocks confirming once the fields are filled in.
+        footerErrorMessage: fieldErrorSummary && !hasRouteError ? fieldErrorSummary : formErrorMessage,
         revealFieldErrors,
     };
 }

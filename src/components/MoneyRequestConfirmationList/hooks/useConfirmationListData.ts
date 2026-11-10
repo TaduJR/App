@@ -252,7 +252,13 @@ function useConfirmationListDataWithPolicy({
         isTaxAmountEmpty,
     });
 
-    const {visibleFieldErrors, fieldErrorSummary, revealFieldErrors} = useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction});
+    const {visibleFieldErrors, footerErrorMessage, revealFieldErrors} = useConfirmationFieldErrors({
+        fieldErrors,
+        partiallyManuallyFilledScanID,
+        onSwitchToTransaction,
+        formErrorMessage: errorMessage,
+        hasRouteError: !!routeError,
+    });
 
     const confirm = buildConfirmAction({
         iouType,
@@ -301,7 +307,7 @@ function useConfirmationListDataWithPolicy({
                 isConfirmed,
                 isConfirming,
                 receiptOptions,
-                errorMessage: errorMessage ?? fieldErrorSummary,
+                errorMessage: footerErrorMessage,
                 expensesNumber,
                 showRemoveExpenseConfirmModal,
                 transaction,

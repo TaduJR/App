@@ -74,10 +74,9 @@ describe('buildConfirmAction', () => {
         // When the user confirms
         buildConfirmAction(params)({paymentType: undefined});
 
-        // Then the field errors are revealed, and the old form error is cleared so the required fields summary takes the footer instead of it
+        // Then the field errors are revealed and the earlier error is left set, so it still blocks confirming once the fields are filled in
         expect(params.revealFieldErrors).toHaveBeenCalledTimes(1);
-        expect(params.setFormError).toHaveBeenCalledTimes(1);
-        expect(params.setFormError).toHaveBeenCalledWith('');
+        expect(params.setFormError).not.toHaveBeenCalled();
         expect(params.onConfirm).not.toHaveBeenCalled();
     });
 

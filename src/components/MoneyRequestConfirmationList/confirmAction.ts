@@ -92,8 +92,6 @@ function buildConfirmAction({
                 setDidConfirmSplit(true);
             }
             if (result.isFieldError) {
-                // An error left from an earlier confirm would otherwise take the footer over the required fields summary.
-                setFormError('');
                 revealFieldErrors();
                 return;
             }
