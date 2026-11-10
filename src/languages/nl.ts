@@ -1750,7 +1750,7 @@ const translations: TranslationDeepObject<typeof en> = {
             atLeastTwoDifferentWaypoints: 'Voer minimaal twee verschillende adressen in',
             splitExpenseMultipleParticipantsErrorMessage: 'Een uitgave kan niet worden opgesplitst tussen een werkruimte en andere leden. Werk je selectie alsjeblieft bij.',
             invalidMerchant: 'Voer een geldige leverancier in',
-            enterRequiredFields: 'Vul de verplichte velden in',
+            enterRequiredFields: 'Vul de verplichte velden in.',
             atLeastOneAttendee: 'Er moet ten minste één deelnemer worden geselecteerd',
             invalidQuantity: 'Voer een geldige hoeveelheid in',
             quantityGreaterThanZero: 'Hoeveelheid moet groter zijn dan nul',

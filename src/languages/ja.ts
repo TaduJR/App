@@ -1736,7 +1736,7 @@ const translations: TranslationDeepObject<typeof en> = {
             atLeastTwoDifferentWaypoints: '少なくとも2つの異なる住所を入力してください',
             splitExpenseMultipleParticipantsErrorMessage: '経費はワークスペースと他のメンバー間で分割できません。選択内容を更新してください。',
             invalidMerchant: '有効な加盟店名を入力してください',
-            enterRequiredFields: '必須項目を入力してください',
+            enterRequiredFields: '必須項目を入力してください。',
             atLeastOneAttendee: '少なくとも 1 人の出席者を選択する必要があります',
             invalidQuantity: '有効な数量を入力してください',
             quantityGreaterThanZero: '数量は0より大きくなければなりません',

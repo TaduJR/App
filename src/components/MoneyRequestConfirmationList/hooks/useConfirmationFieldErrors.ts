@@ -55,14 +55,14 @@ function useConfirmationFieldErrors({
         setShouldShowFieldErrors(false);
     }
 
-    const isFieldMissingOnScreen = Object.values(fieldErrors).includes('common.error.fieldRequired');
-    const isRequiredFieldMissing = isFieldMissingOnScreen || !!partiallyManuallyFilledScanID;
+    // Validation only checks the values of the receipt on screen, so its errors are fixed first and a partially filled sibling only counts once it has none.
+    const hasFieldErrorsOnScreen = Object.keys(fieldErrors).length > 0;
+    const isRequiredFieldMissing = hasFieldErrorsOnScreen ? Object.values(fieldErrors).includes('common.error.fieldRequired') : !!partiallyManuallyFilledScanID;
 
     const revealFieldErrors = () => {
         setShouldShowFieldErrors(true);
 
-        // Unless a field on screen is missing, the partially filled sibling receipt is the one to finish first, so bring it into view.
-        if (!isFieldMissingOnScreen && partiallyManuallyFilledScanID) {
+        if (!hasFieldErrorsOnScreen && partiallyManuallyFilledScanID) {
             onSwitchToTransaction?.(partiallyManuallyFilledScanID);
         }
     };

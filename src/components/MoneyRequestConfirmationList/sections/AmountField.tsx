@@ -59,8 +59,8 @@ type AmountFieldProps = {
     shouldDisplayFieldError: boolean;
     formError: string;
 
-    /** The amount entry of the errors a blocked confirm revealed, from `getConfirmationFieldErrors` */
-    fieldError: TranslationPaths | undefined;
+    /** The amount entry of the errors a blocked confirm revealed, from `getConfirmationFieldErrors`. Distance and time leave it out, since their amount is computed. */
+    fieldError?: TranslationPaths;
 
     policy: OnyxEntry<OnyxTypes.Policy>;
     clearFormErrors: (errors: string[]) => void;

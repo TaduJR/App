@@ -49,7 +49,7 @@ function FormAlertWrapper({
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
 
-    const defaultFixErrorsMessage = translate('common.error.fixErrorsBeforeContinuing');
+    const defaultFixErrorsMessage = `${translate('common.please')} ${translate('common.fixTheErrors')} ${translate('common.inTheFormBeforeContinuing')}.`;
     const announcementMessage = message?.length ? message : defaultFixErrorsMessage;
 
     let content;

@@ -143,15 +143,23 @@ describe('useConfirmationFieldErrors', () => {
         expect(onSwitchToTransaction).toHaveBeenCalledWith('txn2');
     });
 
-    it('brings the partially filled sibling receipt on screen when the receipt on screen only holds an invalid value', () => {
+    it('keeps an invalid value on the receipt on screen in view before moving to a partially filled sibling', () => {
         // Given a multi-scan whose receipt on screen has a typed merchant that isn't allowed, while a sibling receipt is partially filled
         const onSwitchToTransaction = jest.fn();
-        const {result} = renderFieldErrors({fieldErrors: {merchant: 'iou.error.invalidMerchant'}, partiallyManuallyFilledScanID: 'txn2', onSwitchToTransaction});
+        const {result, rerender} = renderFieldErrors({fieldErrors: {merchant: 'iou.error.invalidMerchant'}, partiallyManuallyFilledScanID: 'txn2', onSwitchToTransaction});
 
         // When the confirm is blocked
         act(() => result.current.revealFieldErrors());
 
-        // Then the sibling is brought on screen first, so the summary asking for the required fields matches the receipt the user sees
+        // Then the receipt on screen stays, since validation only checks its values, and the summary asks to fix the error it shows
+        expect(onSwitchToTransaction).not.toHaveBeenCalled();
+        expect(result.current.footerErrorMessage).toBe('common.error.fixErrorsBeforeContinuing');
+
+        // When the user fixes the merchant and confirms again
+        rerender({fieldErrors: NO_FIELD_ERRORS, partiallyManuallyFilledScanID: 'txn2', onSwitchToTransaction});
+        act(() => result.current.revealFieldErrors());
+
+        // Then the partially filled sibling is brought on screen and the summary asks for its required fields
         expect(onSwitchToTransaction).toHaveBeenCalledWith('txn2');
         expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
     });

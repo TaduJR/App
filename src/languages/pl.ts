@@ -1790,7 +1790,7 @@ const translations: TranslationDeepObject<typeof en> = {
             atLeastTwoDifferentWaypoints: 'Wprowadź co najmniej dwa różne adresy',
             splitExpenseMultipleParticipantsErrorMessage: 'Wydatek nie może być podzielony między przestrzeń roboczą a innych członków. Zaktualizuj swój wybór.',
             invalidMerchant: 'Wprowadź prawidłowego sprzedawcę',
-            enterRequiredFields: 'Wypełnij wymagane pola',
+            enterRequiredFields: 'Wypełnij wymagane pola.',
             atLeastOneAttendee: 'Co najmniej jeden uczestnik musi zostać wybrany',
             invalidQuantity: 'Wprowadź prawidłową ilość',
             quantityGreaterThanZero: 'Ilość musi być większa niż zero',

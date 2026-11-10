@@ -1824,7 +1824,7 @@ const translations: TranslationDeepObject<typeof en> = {
             atLeastTwoDifferentWaypoints: 'Παρακαλούμε εισαγάγετε τουλάχιστον δύο διαφορετικές διευθύνσεις',
             splitExpenseMultipleParticipantsErrorMessage: 'Μια δαπάνη δεν μπορεί να κατανεμηθεί μεταξύ ενός χώρου εργασίας και άλλων μελών. Παρακαλούμε ενημερώστε την επιλογή σας.',
             invalidMerchant: 'Παρακαλούμε εισαγάγετε έγκυρο έμπορο',
-            enterRequiredFields: 'Παρακαλούμε συμπληρώστε τα υποχρεωτικά πεδία',
+            enterRequiredFields: 'Παρακαλούμε συμπληρώστε τα υποχρεωτικά πεδία.',
             atLeastOneAttendee: 'Πρέπει να επιλεγεί τουλάχιστον ένας συμμετέχων',
             invalidQuantity: 'Παρακαλούμε εισαγάγετε μια έγκυρη ποσότητα',
             quantityGreaterThanZero: 'Η ποσότητα πρέπει να είναι μεγαλύτερη από το μηδέν',

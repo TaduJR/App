@@ -109,9 +109,12 @@ function getMerchantFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, pa
         return transaction?.isMerchantSet && isTypedValueInvalid ? 'iou.error.invalidMerchant' : undefined;
     }
 
-    // A split draft doesn't record whether its merchant was typed, so an edited split can't tell a typed placeholder from a seeded one and calls both invalid.
     if (isEditingSplitBill) {
-        return !merchant || isMerchantMissing(transaction) ? 'iou.error.invalidMerchant' : undefined;
+        if (!merchant.trim()) {
+            return 'common.error.fieldRequired';
+        }
+        // A split draft doesn't record whether its merchant was typed, so an edited split can't tell a typed placeholder from a seeded one and calls both invalid.
+        return isMerchantMissing(transaction) ? 'iou.error.invalidMerchant' : undefined;
     }
 
     // A required merchant left blank reads the same as the other required fields, and only a typed one is "invalid".

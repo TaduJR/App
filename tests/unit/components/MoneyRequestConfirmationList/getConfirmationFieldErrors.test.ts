@@ -123,6 +123,22 @@ describe('getConfirmationFieldErrors', () => {
         expect(fieldErrors).toEqual({merchant: 'iou.error.invalidMerchant'});
     });
 
+    it('reports an emptied merchant on an edited split as required', () => {
+        // Given a workspace split being edited whose merchant the user cleared, which the split draft stores as an empty string
+        const transaction = createManualTransaction({merchant: '', isMerchantSet: false});
+
+        // When its field errors are computed
+        const fieldErrors = getConfirmationFieldErrors(transaction, {
+            ...baseParams,
+            iouType: CONST.IOU.TYPE.SPLIT,
+            iouMerchant: '',
+            isEditingSplitBill: true,
+        });
+
+        // Then the merchant reads as missing, the same as a blank merchant on a new expense, since an empty value can't be a typed placeholder
+        expect(fieldErrors).toEqual({merchant: 'common.error.fieldRequired'});
+    });
+
     it('flags a placeholder value the user typed into an optional merchant', () => {
         // Given an expense to a user, whose merchant is optional, where the user typed the "Expense" placeholder themselves
         const transaction = createManualTransaction({merchant: CONST.TRANSACTION.DEFAULT_MERCHANT, isMerchantSet: true, participants: [P2P_PARTICIPANT]});
