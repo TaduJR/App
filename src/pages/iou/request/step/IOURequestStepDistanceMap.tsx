@@ -31,6 +31,7 @@ import Navigation from '@libs/Navigation/Navigation';
 import {isPolicyExpenseChat as isPolicyExpenseChatUtil} from '@libs/ReportUtils';
 import shouldUseDefaultExpensePolicyUtil from '@libs/shouldUseDefaultExpensePolicy';
 import {doesMoneyRequestDraftHaveUserInput, getRateID, getRequestType} from '@libs/TransactionUtils';
+import {getFixTheErrorsMessage} from '@libs/ValidationUtils';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -260,7 +261,7 @@ function IOURequestStepDistanceMap({
         }
         if (isWaypointsNullIslandError) {
             return {
-                isWaypointsNullIslandError: `${translate('common.please')} ${translate('common.fixTheErrors')} ${translate('common.inTheFormBeforeContinuing')}.`,
+                isWaypointsNullIslandError: getFixTheErrorsMessage(translate),
             } as Errors;
         }
         if (duplicateWaypointsError) {
