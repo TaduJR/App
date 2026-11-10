@@ -69,7 +69,7 @@ describe('buildConfirmAction', () => {
 
     it('reveals a field error on its field instead of setting it as the form error', () => {
         // Given a confirmation whose amount field is missing a value, while an error from an earlier confirm is still set
-        const params = makeBase({formError: 'violations.categoryOutOfPolicy', validate: jest.fn(() => ({errorKey: 'common.error.fieldRequired', isFieldError: true}))});
+        const params = makeBase({formError: 'violations.categoryOutOfPolicy', validate: jest.fn(() => ({isFieldError: true as const}))});
 
         // When the user confirms
         buildConfirmAction(params)({paymentType: undefined});
@@ -107,7 +107,7 @@ describe('buildConfirmAction', () => {
     it('blocks the company-info step for an invalid invoice instead of routing past validation (#96579)', () => {
         // Given an invoice whose sender workspace has no company info yet, and a cleared date
         mockHasInvoicingDetails.mockReturnValueOnce(false);
-        const params = makeBase({iouType: CONST.IOU.TYPE.INVOICE, validate: jest.fn(() => ({errorKey: 'common.error.fieldRequired', isFieldError: true}))});
+        const params = makeBase({iouType: CONST.IOU.TYPE.INVOICE, validate: jest.fn(() => ({isFieldError: true as const}))});
 
         // When the user confirms
         buildConfirmAction(params)({paymentType: undefined});

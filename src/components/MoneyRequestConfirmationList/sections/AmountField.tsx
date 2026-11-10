@@ -1,6 +1,5 @@
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import {useConfirmationFields} from '@components/MoneyRequestConfirmationFields/context';
-import type {ConfirmationFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 import NumberWithSymbolForm from '@components/NumberWithSymbolForm';
 import type {BaseTextInputRef} from '@components/TextInput/BaseTextInput/types';
 
@@ -60,8 +59,8 @@ type AmountFieldProps = {
     shouldDisplayFieldError: boolean;
     formError: string;
 
-    /** The errors of a blocked confirm. Only the `amount` entry is shown here. */
-    fieldErrors: ConfirmationFieldErrors;
+    /** The amount entry of the errors a blocked confirm revealed, from `getConfirmationFieldErrors` */
+    fieldError: TranslationPaths | undefined;
 
     policy: OnyxEntry<OnyxTypes.Policy>;
     clearFormErrors: (errors: string[]) => void;
@@ -77,7 +76,7 @@ function AmountField({
     shouldShowTimeRequestFields,
     shouldDisplayFieldError,
     formError,
-    fieldErrors,
+    fieldError,
     policy,
     clearFormErrors,
     setFormError,
@@ -120,7 +119,7 @@ function AmountField({
     const canOpenAmountPage = !isReadOnly && !isDistanceRequest && !shouldShowTimeRequestFields && !isScanningReceipt;
     const isP2P = isParticipantP2P(getMoneyRequestParticipantsFromReport(report, currentUserPersonalDetails.accountID).at(0));
     // Editing a split bill flags an invalid amount as the user types, through the form error rather than the field errors.
-    const amountErrorKey = formError === 'common.error.invalidAmount' ? 'common.error.invalidAmount' : fieldErrors.amount;
+    const amountErrorKey = formError === 'common.error.invalidAmount' ? 'common.error.invalidAmount' : fieldError;
 
     let amountFieldErrorText = '';
     if (amountErrorKey) {

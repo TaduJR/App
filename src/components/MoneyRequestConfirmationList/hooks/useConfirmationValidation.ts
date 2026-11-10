@@ -28,10 +28,9 @@ type ValidationResult =
     | {
           errorKey: TranslationPaths;
           shouldSetDidConfirmSplit?: boolean;
-
-          /** Set when the error belongs to the amount, date or merchant field, which shows it under its own input */
-          isFieldError?: boolean;
       }
+    // The amount, date or merchant field blocks confirming. Those fields show their own errors from `fieldErrors`, so there is no key to set.
+    | {isFieldError: true}
     | {errorKey: null};
 
 type UseConfirmationValidationResult = {
@@ -206,14 +205,10 @@ function useConfirmationValidation({
             return {errorKey: 'iou.error.noParticipantSelected'};
         }
 
-        const fieldError = fieldErrors.amount ?? fieldErrors.date ?? fieldErrors.merchant;
-        if (fieldError) {
-            return {errorKey: fieldError, isFieldError: true};
-        }
-        // On a multi-scan the same rule has to hold for the receipts that are not on screen, since Create submits
-        // all of them at once. The caller brings the offending one into view so its blank fields show their errors.
-        if (partiallyManuallyFilledScanID) {
-            return {errorKey: 'common.error.fieldRequired', isFieldError: true};
+        // A partially filled sibling receipt of a multi-scan blocks too, since Create submits every receipt at once.
+        // The caller brings it into view so its blank fields show their errors.
+        if (Object.keys(fieldErrors).length > 0 || partiallyManuallyFilledScanID) {
+            return {isFieldError: true};
         }
 
         if (iouCategory.length > CONST.API_TRANSACTION_CATEGORY_MAX_LENGTH) {

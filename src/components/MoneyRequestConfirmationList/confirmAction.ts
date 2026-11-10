@@ -87,13 +87,14 @@ function buildConfirmAction({
             return;
         }
 
+        if ('isFieldError' in result) {
+            revealFieldErrors();
+            return;
+        }
+
         if (result.errorKey) {
             if (result.shouldSetDidConfirmSplit) {
                 setDidConfirmSplit(true);
-            }
-            if (result.isFieldError) {
-                revealFieldErrors();
-                return;
             }
             setFormError(result.errorKey);
             return;

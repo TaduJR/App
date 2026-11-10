@@ -70,7 +70,7 @@ describe('getConfirmationFieldErrors', () => {
         // When its field errors are computed
         const fieldErrors = getConfirmationFieldErrors(createManualTransaction(), baseParams);
 
-        // Then nothing is reported, and the same empty object comes back so the fields don't re-render for a new one
+        // Then nothing is reported, and the shared empty map comes back so the footer's error state keeps its identity
         expect(fieldErrors).toBe(NO_FIELD_ERRORS);
     });
 

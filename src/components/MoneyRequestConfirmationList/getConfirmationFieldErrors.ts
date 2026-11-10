@@ -53,7 +53,7 @@ type GetConfirmationFieldErrorsParams = {
     currentUserAccountID: number;
 };
 
-/** A stable empty map for when no field error is shown, so the fields don't receive a new object on every render. */
+/** Returned whenever no field error is shown, so the error state passed down the footer keeps its identity while nothing is flagged. */
 const NO_FIELD_ERRORS: Readonly<ConfirmationFieldErrors> = Object.freeze({});
 
 function getAmountFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, params: GetConfirmationFieldErrorsParams): TranslationPaths | undefined {

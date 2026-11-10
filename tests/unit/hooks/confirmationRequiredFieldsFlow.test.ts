@@ -18,9 +18,10 @@ jest.mock('@hooks/useLocalize', () => () => ({translate: (key: string) => key}))
 jest.mock('@hooks/useCurrencyList', () => ({useCurrencyListActions: () => ({getCurrencyDecimals: () => 2})}));
 jest.mock('@libs/Navigation/Navigation', () => ({navigate: jest.fn(), getActiveRoute: () => '/'}));
 jest.mock('@userActions/Policy/Policy', () => ({hasInvoicingDetails: jest.fn(() => true)}));
+let mockIsFocused = true;
 jest.mock('@react-navigation/native', () => {
     const actual = jest.requireActual<typeof ReactNavigationModule>('@react-navigation/native');
-    return {...actual, useIsFocused: () => true};
+    return {...actual, useIsFocused: () => mockIsFocused};
 });
 
 const WORKSPACE_PARTICIPANT = {accountID: 0, isPolicyExpenseChat: true, policyID: 'policy1'} as Participant;
@@ -124,6 +125,7 @@ function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
 describe('required fields on a manual workspace expense', () => {
     beforeEach(() => {
         mockOnConfirm.mockClear();
+        mockIsFocused = true;
     });
 
     it('keeps the blank merchant flagged and the summary shown after only the amount is entered', () => {
@@ -148,9 +150,26 @@ describe('required fields on a manual workspace expense', () => {
         act(() => result.current.confirm());
 
         // Then the blank merchant still reads as required rather than invalid, so the summary still explains the block
-        expect(result.current.validate()).toEqual({errorKey: 'common.error.fieldRequired', isFieldError: true});
+        expect(result.current.validate()).toEqual({isFieldError: true});
+        expect(result.current.visibleFieldErrors).toEqual({merchant: 'common.error.fieldRequired'});
         expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
         expect(mockOnConfirm).not.toHaveBeenCalled();
+    });
+
+    it('keeps the errors shown when the user leaves the page and comes back without filling anything in', () => {
+        // Given a blocked confirm on a manual workspace expense with neither an amount nor a merchant
+        const {result, rerender} = renderHook((transaction: OnyxTypes.Transaction) => useManualWorkspaceConfirmation(transaction), {initialProps: blankDraft});
+        act(() => result.current.confirm());
+
+        // When the user opens another page, such as the category picker, and comes back, which clears the form error
+        mockIsFocused = false;
+        rerender(blankDraft);
+        mockIsFocused = true;
+        rerender(blankDraft);
+
+        // Then both fields are still flagged and the summary still shows, since the fields are still blank
+        expect(result.current.visibleFieldErrors).toEqual({amount: 'common.error.fieldRequired', merchant: 'common.error.fieldRequired'});
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
     });
 
     it('clears the errors and confirms once every required field is filled in', () => {
