@@ -11,7 +11,7 @@ type Props = {
     partiallyManuallyFilledScanID?: string;
     onSwitchToTransaction?: (transactionID: string) => void;
     formErrorMessage?: string;
-    hasRouteError?: boolean;
+    routeError?: string;
 };
 
 const MISSING_AMOUNT: ConfirmationFieldErrors = {amount: 'common.error.fieldRequired'};
@@ -21,8 +21,8 @@ const FIX_THE_ERRORS = 'common.please common.fixTheErrors common.inTheFormBefore
 
 function renderFieldErrors(initialProps: Props) {
     return renderHook(
-        ({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, hasRouteError = false}: Props) =>
-            useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, hasRouteError}),
+        ({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, routeError}: Props) =>
+            useConfirmationFieldErrors({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, routeError}),
         {initialProps},
     );
 }
@@ -118,15 +118,19 @@ describe('useConfirmationFieldErrors', () => {
         expect(result.current.footerErrorMessage).toBe(rateError);
     });
 
-    it('keeps a route error in the footer over the summary', () => {
-        // Given a distance expense whose route failed to load, and whose date is missing
+    it('keeps a route error in the footer over the summary and any other form error', () => {
+        // Given a distance expense whose route failed to load, with its date missing and another form error set
         const routeError = 'Could not load the route';
-        const {result} = renderFieldErrors({fieldErrors: {date: 'common.error.fieldRequired'}, formErrorMessage: routeError, hasRouteError: true});
+        const {result} = renderFieldErrors({fieldErrors: {date: 'common.error.fieldRequired'}, formErrorMessage: 'Please select a valid distance rate', routeError});
+
+        // When nothing has been confirmed yet
+        // Then the route error shows over the form error
+        expect(result.current.footerErrorMessage).toBe(routeError);
 
         // When the field errors are revealed
         act(() => result.current.revealFieldErrors());
 
-        // Then the route error stays, since the expense can't be confirmed until the route loads
+        // Then the route error stays over the summary, since the expense can't be confirmed until the route loads
         expect(result.current.footerErrorMessage).toBe(routeError);
     });
 

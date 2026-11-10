@@ -139,6 +139,11 @@ function getConfirmationFieldErrors(transaction: OnyxEntry<OnyxTypes.Transaction
     };
 }
 
+/** Whether a field error blocks confirming. A partially filled sibling receipt of a multi-scan blocks too, since Create submits every receipt at once. */
+function hasBlockingFieldErrors(fieldErrors: ConfirmationFieldErrors, partiallyManuallyFilledScanID: string | undefined): boolean {
+    return Object.keys(fieldErrors).length > 0 || !!partiallyManuallyFilledScanID;
+}
+
 export default getConfirmationFieldErrors;
-export {NO_FIELD_ERRORS};
+export {NO_FIELD_ERRORS, hasBlockingFieldErrors};
 export type {ConfirmationFieldErrors, GetConfirmationFieldErrorsParams};

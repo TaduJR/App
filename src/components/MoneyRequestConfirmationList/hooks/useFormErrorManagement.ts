@@ -43,23 +43,11 @@ type UseFormErrorManagementParams = {
     /** Whether we are editing an existing split bill */
     isEditingSplitBill: boolean | undefined;
 
-    /** Whether this is a policy-expense chat (drives merchant requirement) */
-    isPolicyExpenseChat: boolean;
-
-    /** Whether the IOU was started from a SmartScan flow */
-    isScanRequest: boolean;
-
-    /** Whether the merchant field should be visible in the UI */
-    shouldShowMerchant: boolean;
-
     /** Whether SmartScan failed to read the receipt */
     hasSmartScanFailed: boolean | undefined;
 
     /** Whether the user has already confirmed the split */
     didConfirmSplit: boolean;
-
-    /** Truthy when the route to the confirmation page has a known error */
-    routeError: string | null | undefined;
 
     /** Whether the current IOU type is split */
     isTypeSplit: boolean;
@@ -87,13 +75,10 @@ type UseFormErrorManagementResult = {
     /** Whether per-field errors should be shown (only true when editing a split bill) */
     shouldDisplayFieldError: boolean;
 
-    /** Whether the merchant field is required for this flow */
-    isMerchantRequired: boolean;
-
     /** Whether a previously surfaced violation has been resolved */
     isViolationFixed: boolean;
 
-    /** User-visible error message derived from `routeError` and `debouncedFormError` */
+    /** User-visible message for the form error, or for `debouncedFormError` on an editable split. A route error is put ahead of it by `useConfirmationFieldErrors`. */
     errorMessage: string | undefined;
 };
 
@@ -101,11 +86,11 @@ type UseFormErrorManagementResult = {
  * Owns the form-error state for the Money Request confirmation flow.
  *
  * Holds a debounced form-error string, exposes setters and clearing helpers used by the
- * controllers, and derives whether the merchant is required, the violation-fixed flag, and the
- * user-visible error message. `shouldDisplayFieldError` is gated on edit-split-bill mode so
- * field-level errors only render in that flow. `errorMessage` prefers `routeError`,
- * then leaves out the errors their own field already shows (missingAttendees, the tax amount
- * error, and the invalid amount an edited split flags as the user types) so they don't show twice.
+ * controllers, and derives the violation-fixed flag and the user-visible error message.
+ * `shouldDisplayFieldError` is gated on edit-split-bill mode so field-level errors only render in
+ * that flow. `errorMessage` leaves out the errors their own field already shows (missingAttendees,
+ * the tax amount error, and the invalid amount an edited split flags as the user types) so they
+ * don't show twice.
  * The amount, date and merchant errors of a blocked confirm aren't held here at all: they are derived
  * by `getConfirmationFieldErrors` and shown through `useConfirmationFieldErrors`.
  */
@@ -119,12 +104,8 @@ function useFormErrorManagement({
     policyCategories,
     currentUserPersonalDetails,
     isEditingSplitBill,
-    isPolicyExpenseChat,
-    isScanRequest,
-    shouldShowMerchant,
     hasSmartScanFailed,
     didConfirmSplit,
-    routeError,
     isTypeSplit,
     shouldShowReadOnlySplits,
     isDistanceRequest,
@@ -145,8 +126,6 @@ function useFormErrorManagement({
     const shouldDisplayFieldError: boolean =
         !!isEditingSplitBill &&
         ((!!hasSmartScanFailed && hasMissingSmartscanFields(transaction, transactionReport)) || (didConfirmSplit && areRequiredFieldsEmpty(transaction, transactionReport)));
-
-    const isMerchantRequired = isPolicyExpenseChat && (!isScanRequest || !!isEditingSplitBill) && shouldShowMerchant;
 
     const isViolationFixed = getIsViolationFixed(formError, {
         category: iouCategory,
@@ -200,9 +179,6 @@ function useFormErrorManagement({
     const isShownOnAmountField = (error: TranslationPaths | ''): boolean => !isDistanceRequest && error === 'common.error.invalidAmount';
 
     const computeErrorMessage = (): string | undefined => {
-        if (routeError) {
-            return routeError;
-        }
         // This runs ahead of the split branch below because splits render the same amount input, so the error duplicates the same way.
         if (isShownOnAmountField(formError)) {
             return undefined;
@@ -229,7 +205,6 @@ function useFormErrorManagement({
         setFormError,
         clearFormErrors,
         shouldDisplayFieldError,
-        isMerchantRequired,
         isViolationFixed,
         errorMessage,
     };

@@ -1,5 +1,5 @@
 import type {ConfirmationFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
-import getConfirmationFieldErrors from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
+import getConfirmationFieldErrors, {hasBlockingFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
 
@@ -204,8 +204,7 @@ function useConfirmationValidation({
             return {errorKey: 'iou.error.noParticipantSelected'};
         }
 
-        // A partially filled sibling receipt of a multi-scan blocks too, since Create submits every receipt at once and the caller brings it into view.
-        if (Object.keys(fieldErrors).length > 0 || partiallyManuallyFilledScanID) {
+        if (hasBlockingFieldErrors(fieldErrors, partiallyManuallyFilledScanID)) {
             return {isFieldError: true};
         }
 

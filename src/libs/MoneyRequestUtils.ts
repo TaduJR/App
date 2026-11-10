@@ -246,6 +246,21 @@ function shouldShowConfirmationDate(shouldShowSmartScanFields: boolean, isDistan
     return shouldShowSmartScanFields || isDistanceRequest;
 }
 
+type ConfirmationMerchantRequirementParams = {
+    isPolicyExpenseChat: boolean;
+    isScanRequest: boolean;
+    isEditingSplitBill: boolean | undefined;
+    shouldShowMerchant: boolean;
+};
+
+/**
+ * Whether the merchant is required on the money request confirmation surface. Only a workspace chat requires one, and
+ * a scan leaves it to SmartScan unless its split is being edited.
+ */
+function isConfirmationMerchantRequired(params: ConfirmationMerchantRequirementParams): boolean {
+    return params.isPolicyExpenseChat && (!params.isScanRequest || !!params.isEditingSplitBill) && params.shouldShowMerchant;
+}
+
 /**
  * Whether the required amount is still missing on the money request confirmation surface.
  * `isAmountSet` is only ever set by the manual flow (scan, per diem, distance and time populate the amount
@@ -294,6 +309,7 @@ export {
     isConfirmationAmountMissing,
     isConfirmationDateMissing,
     isConfirmationMerchantMissing,
+    isConfirmationMerchantRequired,
     shouldShowConfirmationDate,
     replaceAllDigits,
     stripCommaFromAmount,

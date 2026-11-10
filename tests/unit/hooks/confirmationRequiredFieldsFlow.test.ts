@@ -5,6 +5,7 @@ import useConfirmationFieldErrors from '@components/MoneyRequestConfirmationList
 import useConfirmationValidation from '@components/MoneyRequestConfirmationList/hooks/useConfirmationValidation';
 import useFormErrorManagement from '@components/MoneyRequestConfirmationList/hooks/useFormErrorManagement';
 
+import {isConfirmationMerchantRequired} from '@libs/MoneyRequestUtils';
 import {getMerchant} from '@libs/TransactionUtils';
 
 import CONST from '@src/CONST';
@@ -46,7 +47,8 @@ const blankDraft: OnyxTypes.Transaction = {
 /** Wires the form error, validation, field error and confirm pieces together the way `useConfirmationListData` does. */
 function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
     const iouMerchant = getMerchant(transaction);
-    const {formError, setFormError, isMerchantRequired, errorMessage} = useFormErrorManagement({
+    const isMerchantRequired = isConfirmationMerchantRequired({isPolicyExpenseChat: true, isScanRequest: false, isEditingSplitBill: false, shouldShowMerchant: true});
+    const {formError, setFormError, errorMessage} = useFormErrorManagement({
         transaction,
         transactionReport: undefined,
         iouCategory: '',
@@ -56,12 +58,8 @@ function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
         policyCategories: undefined,
         currentUserPersonalDetails: CURRENT_USER,
         isEditingSplitBill: false,
-        isPolicyExpenseChat: true,
-        isScanRequest: false,
-        shouldShowMerchant: true,
         hasSmartScanFailed: false,
         didConfirmSplit: false,
-        routeError: undefined,
         isTypeSplit: false,
         shouldShowReadOnlySplits: true,
         isDistanceRequest: false,
@@ -102,7 +100,7 @@ function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
         partiallyManuallyFilledScanID: undefined,
         onSwitchToTransaction: undefined,
         formErrorMessage: errorMessage,
-        hasRouteError: false,
+        routeError: undefined,
     });
     const confirm = buildConfirmAction({
         iouType: CONST.IOU.TYPE.SUBMIT,

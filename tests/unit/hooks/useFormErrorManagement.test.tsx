@@ -36,12 +36,8 @@ const baseParams: Params = {
     policyCategories: undefined,
     currentUserPersonalDetails: {accountID: 1} as CurrentUserPersonalDetails,
     isEditingSplitBill: false,
-    isPolicyExpenseChat: false,
-    isScanRequest: false,
-    shouldShowMerchant: true,
     hasSmartScanFailed: false,
     didConfirmSplit: false,
-    routeError: undefined,
     isTypeSplit: false,
     shouldShowReadOnlySplits: false,
     isDistanceRequest: false,
@@ -78,16 +74,6 @@ describe('useFormErrorManagement', () => {
         expect(result.current.shouldDisplayFieldError).toBe(true);
     });
 
-    it('isMerchantRequired is true only for policyExpenseChat with non-scan request and shouldShowMerchant', () => {
-        const {result: required} = renderHook(() => useFormErrorManagement({...baseParams, isPolicyExpenseChat: true, isScanRequest: false, shouldShowMerchant: true}), {wrapper: Wrapper});
-        const {result: notRequired} = renderHook(
-            () => useFormErrorManagement({...baseParams, isPolicyExpenseChat: true, isScanRequest: true, shouldShowMerchant: true, isEditingSplitBill: false}),
-            {wrapper: Wrapper},
-        );
-        expect(required.current.isMerchantRequired).toBe(true);
-        expect(notRequired.current.isMerchantRequired).toBe(false);
-    });
-
     it('clearFormErrors only clears the error when it matches the provided list', async () => {
         const {result} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
         act(() => result.current.setFormError('iou.error.invalidMerchant'));
@@ -100,11 +86,6 @@ describe('useFormErrorManagement', () => {
         // Matching list clears
         act(() => result.current.clearFormErrors(['iou.error.invalidMerchant']));
         expect(result.current.formError).toBe('');
-    });
-
-    it('errorMessage returns routeError when present', () => {
-        const {result} = renderHook(() => useFormErrorManagement({...baseParams, routeError: 'route.error.unreachable'}), {wrapper: Wrapper});
-        expect(result.current.errorMessage).toBe('route.error.unreachable');
     });
 
     it('errorMessage returns undefined for violations.missingAttendees on non-split flows', async () => {
@@ -182,30 +163,5 @@ describe('useFormErrorManagement', () => {
         } finally {
             jest.useRealTimers();
         }
-    });
-
-    it('leaves the merchant optional on a scan the user has started filling in, since a blank field is still scanned', () => {
-        const scanParams: Partial<Params> = {
-            isScanRequest: true,
-            isPolicyExpenseChat: false,
-        };
-        const scanDraft = {
-            transactionID: 'txn1',
-            amount: 0,
-            merchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
-            comment: {},
-            iouRequestType: CONST.IOU.REQUEST_TYPE.SCAN,
-        };
-
-        const {result: untouched} = renderHook(() => useFormErrorManagement({...baseParams, ...scanParams, transaction: createMock<OnyxTypes.Transaction>(scanDraft)}), {
-            wrapper: Wrapper,
-        });
-        const {result: amountEntered} = renderHook(
-            () => useFormErrorManagement({...baseParams, ...scanParams, transaction: createMock<OnyxTypes.Transaction>({...scanDraft, amount: 1000, isAmountSet: true})}),
-            {wrapper: Wrapper},
-        );
-
-        expect(untouched.current.isMerchantRequired).toBe(false);
-        expect(amountEntered.current.isMerchantRequired).toBe(false);
     });
 });

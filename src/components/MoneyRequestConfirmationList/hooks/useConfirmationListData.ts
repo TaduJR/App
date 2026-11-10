@@ -9,7 +9,7 @@ import usePrevious from '@hooks/usePrevious';
 
 import {getCategoryDescriptionHint, isCategoryDescriptionRequired} from '@libs/CategoryUtils';
 import {isMovingTransactionFromTrackExpense as isMovingTransactionFromTrackExpenseUtil} from '@libs/IOUUtils';
-import {shouldShowConfirmationDate} from '@libs/MoneyRequestUtils';
+import {isConfirmationMerchantRequired, shouldShowConfirmationDate} from '@libs/MoneyRequestUtils';
 import {hasEnabledOptions} from '@libs/OptionsListUtils';
 import {arePolicyRulesEnabled, isTaxTrackingEnabled} from '@libs/PolicyUtils';
 import {getCategory, getCurrency, getMerchant, getRateID, hasValidModifiedAmount, isScanRequest as isScanRequestUtil} from '@libs/TransactionUtils';
@@ -122,6 +122,7 @@ function useConfirmationListDataWithPolicy({
 
     // In the share flow, the caller knows it is a scan before the draft is initialized.
     const isScanRequest = isScanRequestProp || isScanRequestUtil(transaction);
+    const isMerchantRequired = isConfirmationMerchantRequired({isPolicyExpenseChat, isScanRequest, isEditingSplitBill, shouldShowMerchant});
 
     const {amountToBeUsed, formattedAmount, formattedAmountPerAttendee} = useConfirmationAmount({
         transaction,
@@ -156,7 +157,7 @@ function useConfirmationListDataWithPolicy({
     // The date field is rendered under the same condition, so a hidden date is never reported missing.
     const shouldShowDate = shouldShowConfirmationDate(shouldShowSmartScanFields, isDistanceRequest);
 
-    const {formError, setFormError, clearFormErrors, shouldDisplayFieldError, isMerchantRequired, errorMessage} = useFormErrorManagement({
+    const {formError, setFormError, clearFormErrors, shouldDisplayFieldError, errorMessage} = useFormErrorManagement({
         transaction,
         transactionReport,
         iouCategory,
@@ -166,12 +167,8 @@ function useConfirmationListDataWithPolicy({
         policyCategories,
         currentUserPersonalDetails,
         isEditingSplitBill,
-        isPolicyExpenseChat,
-        isScanRequest,
-        shouldShowMerchant,
         hasSmartScanFailed,
         didConfirmSplit,
-        routeError,
         isTypeSplit,
         shouldShowReadOnlySplits,
         isDistanceRequest,
@@ -253,7 +250,7 @@ function useConfirmationListDataWithPolicy({
         partiallyManuallyFilledScanID,
         onSwitchToTransaction,
         formErrorMessage: errorMessage,
-        hasRouteError: !!routeError,
+        routeError,
     });
 
     const confirm = buildConfirmAction({

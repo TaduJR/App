@@ -1,9 +1,9 @@
 /**
- * Owns when the amount, date and merchant errors of the money request confirmation become visible, and the summary
- * shown above its confirm button while one of them blocks confirming.
+ * Owns when the amount, date and merchant errors of the money request confirmation become visible, and the message
+ * above its confirm button: a route error, then the summary while one of those errors blocks confirming, then the form error.
  */
 import type {ConfirmationFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
-import {NO_FIELD_ERRORS} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
+import {hasBlockingFieldErrors, NO_FIELD_ERRORS} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 
 import useLocalize from '@hooks/useLocalize';
 
@@ -21,11 +21,11 @@ type UseConfirmationFieldErrorsParams = {
     /** Brings another receipt of a multi-scan on screen */
     onSwitchToTransaction: ((transactionID: string) => void) | undefined;
 
-    /** The footer message built from the form error by `useFormErrorManagement`, which already puts a route error first */
+    /** The footer message `useFormErrorManagement` builds from the form error */
     formErrorMessage: string | undefined;
 
-    /** Whether the route has an error, which keeps that error in the footer over the field errors summary */
-    hasRouteError: boolean;
+    /** An error loading the distance route, which the footer shows over the summary and the form error */
+    routeError: string | null | undefined;
 };
 
 type UseConfirmationFieldErrorsResult = {
@@ -45,12 +45,12 @@ function useConfirmationFieldErrors({
     partiallyManuallyFilledScanID,
     onSwitchToTransaction,
     formErrorMessage,
-    hasRouteError,
+    routeError,
 }: UseConfirmationFieldErrorsParams): UseConfirmationFieldErrorsResult {
     const {translate} = useLocalize();
     const [shouldShowFieldErrors, setShouldShowFieldErrors] = useState(false);
 
-    const hasFieldErrors = Object.keys(fieldErrors).length > 0 || !!partiallyManuallyFilledScanID;
+    const hasFieldErrors = hasBlockingFieldErrors(fieldErrors, partiallyManuallyFilledScanID);
 
     // Hide the errors again once nothing is left to fix, so a field the user empties afterwards is only flagged on the next confirm.
     if (shouldShowFieldErrors && !hasFieldErrors) {
@@ -68,15 +68,16 @@ function useConfirmationFieldErrors({
         }
     };
 
-    // A missing value asks for the required fields, and a field holding only an invalid value gets the line every form shows above its submit button.
-    let fieldErrorSummary: string | undefined;
-    if (shouldShowFieldErrors && hasFieldErrors) {
-        fieldErrorSummary = isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : getFixTheErrorsMessage(translate);
+    let footerErrorMessage = formErrorMessage;
+    if (routeError) {
+        footerErrorMessage = routeError;
+    } else if (shouldShowFieldErrors && hasFieldErrors) {
+        footerErrorMessage = isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : getFixTheErrorsMessage(translate);
     }
 
     return {
         visibleFieldErrors: shouldShowFieldErrors ? fieldErrors : NO_FIELD_ERRORS,
-        footerErrorMessage: fieldErrorSummary && !hasRouteError ? fieldErrorSummary : formErrorMessage,
+        footerErrorMessage,
         revealFieldErrors,
     };
 }

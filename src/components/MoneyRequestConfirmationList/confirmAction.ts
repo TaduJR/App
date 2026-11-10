@@ -36,7 +36,7 @@ type BuildConfirmActionParams = {
     /** Whether the current user is a delegate without permission to pay */
     isDelegateAccessRestricted: boolean;
 
-    /** Pure validator that returns the first failing translation key, or null on success */
+    /** Returns the first check that blocks confirming, `{errorKey: null}` when none does, or null when validation can't run yet */
     validate: (paymentType?: PaymentMethodType) => ValidationResult | null;
 
     /** Setter for the form-level error key */
