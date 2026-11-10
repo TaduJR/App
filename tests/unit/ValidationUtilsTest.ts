@@ -2,10 +2,12 @@ import type {FormOnyxValues} from '@components/Form/types';
 
 import CONST from '@src/CONST';
 import type {Country} from '@src/CONST';
+import IntlStore from '@src/languages/IntlStore';
 import {
     containsHtmlTag,
     getCountryZipRegexDetails,
     getFieldRequiredErrors,
+    getFixTheErrorsMessage,
     isValidZipCodeForCountry,
     isValidNameOnCard,
     getAgeRequirementError,
@@ -834,6 +836,19 @@ describe('ValidationUtils', () => {
 
         test('Should return false for an empty string', () => {
             expect(isValidPhoneNumber('')).toBe(false);
+        });
+    });
+
+    describe('getFixTheErrorsMessage', () => {
+        beforeAll(() => IntlStore.load(CONST.LOCALES.EN));
+
+        test('builds the line forms show above their submit button', () => {
+            // Given the English copy
+            // When the message is built
+            const message = getFixTheErrorsMessage(translateLocal);
+
+            // Then it reads as the one sentence every form uses, so the expense confirmation footer and form alerts match
+            expect(message).toBe('Please fix the errors in the form before continuing.');
         });
     });
 

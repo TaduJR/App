@@ -16,6 +16,9 @@ type Props = {
 
 const MISSING_AMOUNT: ConfirmationFieldErrors = {amount: 'common.error.fieldRequired'};
 
+// What the passthrough translate mock above turns the "Please fix the errors in the form before continuing" line into
+const FIX_THE_ERRORS = 'common.please common.fixTheErrors common.inTheFormBeforeContinuing.';
+
 function renderFieldErrors(initialProps: Props) {
     return renderHook(
         ({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, hasRouteError = false}: Props) =>
@@ -47,16 +50,27 @@ describe('useConfirmationFieldErrors', () => {
         expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
     });
 
-    it('does not show the required fields summary when every field error is an invalid value', () => {
-        // Given a confirmation whose only field error is an invalid amount
+    it('asks to fix the errors when every field error is an invalid value rather than a missing one', () => {
+        // Given a confirmation whose only field error is an invalid amount, such as a negative amount to a person
         const {result} = renderFieldErrors({fieldErrors: {amount: 'common.error.invalidAmount'}});
 
         // When the confirm is blocked by it
         act(() => result.current.revealFieldErrors());
 
-        // Then the field shows it, but the summary that asks for required fields stays out of the footer
+        // Then the field shows it, and the footer uses the line other forms show, since nothing is missing for "required fields" to describe
         expect(result.current.visibleFieldErrors).toEqual({amount: 'common.error.invalidAmount'});
-        expect(result.current.footerErrorMessage).toBeUndefined();
+        expect(result.current.footerErrorMessage).toBe(FIX_THE_ERRORS);
+    });
+
+    it('asks for the required fields when a missing value and an invalid one block together', () => {
+        // Given a confirmation with a missing date and an invalid merchant
+        const {result} = renderFieldErrors({fieldErrors: {date: 'common.error.fieldRequired', merchant: 'iou.error.invalidMerchant'}});
+
+        // When the confirm is blocked by them
+        act(() => result.current.revealFieldErrors());
+
+        // Then the footer asks for the required fields, since the missing value is what the user has to add first
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
     });
 
     it('keeps the errors shown while any field is still missing, and hides them once all are filled in', () => {

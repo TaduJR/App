@@ -1,11 +1,13 @@
 /**
  * Owns when the amount, date and merchant errors of the money request confirmation become visible, and the summary
- * shown above its confirm button while a required one is missing.
+ * shown above its confirm button while one of them blocks confirming.
  */
 import type {ConfirmationFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 import {NO_FIELD_ERRORS} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 
 import useLocalize from '@hooks/useLocalize';
+
+import {getFixTheErrorsMessage} from '@libs/ValidationUtils';
 
 import {useState} from 'react';
 
@@ -22,7 +24,7 @@ type UseConfirmationFieldErrorsParams = {
     /** The footer message built from the form error by `useFormErrorManagement`, which already puts a route error first */
     formErrorMessage: string | undefined;
 
-    /** Whether the route has an error, which keeps that error in the footer over the required fields summary */
+    /** Whether the route has an error, which keeps that error in the footer over the field errors summary */
     hasRouteError: boolean;
 };
 
@@ -30,7 +32,7 @@ type UseConfirmationFieldErrorsResult = {
     /** The field errors to render. Empty until a confirm is blocked by one of them. */
     visibleFieldErrors: ConfirmationFieldErrors;
 
-    /** The message above the confirm button: a route error, then the required fields summary while it applies, then the form error */
+    /** The message above the confirm button: a route error, then the field errors summary while it applies, then the form error */
     footerErrorMessage: string | undefined;
 
     /** Shows the field errors after a confirm they blocked, bringing the receipt they belong to on screen */
@@ -67,7 +69,11 @@ function useConfirmationFieldErrors({
         }
     };
 
-    const fieldErrorSummary = shouldShowFieldErrors && isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : undefined;
+    // A missing value asks for the required fields, and a field holding only an invalid value gets the line every form shows above its submit button.
+    let fieldErrorSummary: string | undefined;
+    if (shouldShowFieldErrors && hasFieldErrors) {
+        fieldErrorSummary = isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : getFixTheErrorsMessage(translate);
+    }
 
     return {
         visibleFieldErrors: shouldShowFieldErrors ? fieldErrors : NO_FIELD_ERRORS,
