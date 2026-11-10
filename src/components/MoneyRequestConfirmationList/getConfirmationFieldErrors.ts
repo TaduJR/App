@@ -61,21 +61,17 @@ function getAmountFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, para
     const firstParticipant = transaction?.participants?.at(0);
     const isP2P = isParticipantP2P(firstParticipant);
 
-    // Per diem, distance and time set the amount themselves, and a scan reads a blank amount off the receipt. This runs
-    // before the $0 check below, so an amount the user never entered reads as missing whoever the expense goes to.
+    // This runs before the $0 check so an amount the user never entered reads as missing, whoever the expense goes to.
     if (isConfirmationAmountMissing(transaction, canEnterScanFieldsManually, isPolicyExpenseChat)) {
         return 'common.error.fieldRequired';
     }
 
-    // A manual expense to a person can't be $0. Scan, time and distance expenses are exempt, since their amount is
-    // normally read off the receipt or computed rather than typed.
+    // A manual expense to a person can't be $0, but scan, time and distance amounts are exempt since they're read off the receipt or computed.
     if (!isScanRequest(transaction) && !isTimeRequest && !isDistanceRequest && iouAmount === 0 && isP2P) {
         return 'common.error.invalidAmount';
     }
 
-    // A Scan amount is optional behind "Show more", but one the user does type is checked like a manual one. The Scan
-    // flow also lets the user pick a 1:1 recipient before entering the amount, so the participant picker's
-    // negative-amount guard never runs for it and the amount has to be checked here.
+    // A typed Scan amount is checked like a manual one, because a Scan can pick its 1:1 recipient first and so never hits the participant picker's negative amount guard.
     const canAmountBeTyped = transaction?.iouRequestType === CONST.IOU.REQUEST_TYPE.MANUAL || canEnterScanFieldsManually;
     if (
         canAmountBeTyped &&
@@ -113,8 +109,7 @@ function getMerchantFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, pa
         return transaction?.isMerchantSet && isTypedValueInvalid ? 'iou.error.invalidMerchant' : undefined;
     }
 
-    // A split draft doesn't record whether the user typed its merchant, so a placeholder the user typed can't be told
-    // apart from one the split was seeded with, and an edited split keeps the generic invalid message for both.
+    // A split draft doesn't record whether its merchant was typed, so an edited split can't tell a typed placeholder from a seeded one and calls both invalid.
     if (isEditingSplitBill) {
         return !merchant || isMerchantMissing(transaction) ? 'iou.error.invalidMerchant' : undefined;
     }

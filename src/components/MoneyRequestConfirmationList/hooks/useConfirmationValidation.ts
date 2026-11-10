@@ -29,7 +29,6 @@ type ValidationResult =
           errorKey: TranslationPaths;
           shouldSetDidConfirmSplit?: boolean;
       }
-    // The amount, date or merchant field blocks confirming. Those fields show their own errors from `fieldErrors`, so there is no key to set.
     | {isFieldError: true}
     | {errorKey: null};
 
@@ -205,8 +204,7 @@ function useConfirmationValidation({
             return {errorKey: 'iou.error.noParticipantSelected'};
         }
 
-        // A partially filled sibling receipt of a multi-scan blocks too, since Create submits every receipt at once.
-        // The caller brings it into view so its blank fields show their errors.
+        // A partially filled sibling receipt of a multi-scan blocks too, since Create submits every receipt at once and the caller brings it into view.
         if (Object.keys(fieldErrors).length > 0 || partiallyManuallyFilledScanID) {
             return {isFieldError: true};
         }

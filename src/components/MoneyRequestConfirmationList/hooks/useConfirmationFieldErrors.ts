@@ -52,8 +52,7 @@ function useConfirmationFieldErrors({
 
     const hasFieldErrors = Object.keys(fieldErrors).length > 0 || !!partiallyManuallyFilledScanID;
 
-    // Hide the errors again once everything is filled in, so a field the user empties afterwards is only flagged on
-    // the next confirm, the same way it was before the first one. A partially filled sibling receipt keeps them shown.
+    // Hide the errors again once nothing is left to fix, so a field the user empties afterwards is only flagged on the next confirm.
     if (shouldShowFieldErrors && !hasFieldErrors) {
         setShouldShowFieldErrors(false);
     }
@@ -77,7 +76,6 @@ function useConfirmationFieldErrors({
 
     return {
         visibleFieldErrors: shouldShowFieldErrors ? fieldErrors : NO_FIELD_ERRORS,
-        // The summary only covers a form error raised elsewhere, like the distance rate one, so that error stays set and still blocks confirming once the fields are filled in.
         footerErrorMessage: fieldErrorSummary && !hasRouteError ? fieldErrorSummary : formErrorMessage,
         revealFieldErrors,
     };
