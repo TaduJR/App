@@ -7,8 +7,6 @@ import {hasBlockingFieldErrors, NO_FIELD_ERRORS} from '@components/MoneyRequestC
 
 import useLocalize from '@hooks/useLocalize';
 
-import {getFixTheErrorsMessage} from '@libs/ValidationUtils';
-
 import {useState} from 'react';
 
 type UseConfirmationFieldErrorsParams = {
@@ -57,13 +55,14 @@ function useConfirmationFieldErrors({
         setShouldShowFieldErrors(false);
     }
 
-    const isRequiredFieldMissing = Object.values(fieldErrors).includes('common.error.fieldRequired') || !!partiallyManuallyFilledScanID;
+    const isFieldMissingOnScreen = Object.values(fieldErrors).includes('common.error.fieldRequired');
+    const isRequiredFieldMissing = isFieldMissingOnScreen || !!partiallyManuallyFilledScanID;
 
     const revealFieldErrors = () => {
         setShouldShowFieldErrors(true);
 
-        // When the receipt on screen is complete, the blocking one is a partially filled sibling, so bring it into view.
-        if (Object.keys(fieldErrors).length === 0 && partiallyManuallyFilledScanID) {
+        // Unless a field on screen is missing, the partially filled sibling receipt is the one to finish first, so bring it into view.
+        if (!isFieldMissingOnScreen && partiallyManuallyFilledScanID) {
             onSwitchToTransaction?.(partiallyManuallyFilledScanID);
         }
     };
@@ -72,7 +71,7 @@ function useConfirmationFieldErrors({
     if (routeError) {
         footerErrorMessage = routeError;
     } else if (shouldShowFieldErrors && hasFieldErrors) {
-        footerErrorMessage = isRequiredFieldMissing ? translate('iou.error.enterRequiredFields') : getFixTheErrorsMessage(translate);
+        footerErrorMessage = translate(isRequiredFieldMissing ? 'iou.error.enterRequiredFields' : 'common.error.fixErrorsBeforeContinuing');
     }
 
     return {

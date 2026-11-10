@@ -237,6 +237,7 @@ const translations: TranslationDeepObject<typeof en> = {
             phoneNumber: `完全な電話番号を入力してください
 （例：${CONST.FORMATTED_EXAMPLE_PHONE_NUMBER}）`,
             fieldRequired: 'この項目は必須です',
+            fixErrorsBeforeContinuing: '続行する前にフォームのエラーを修正してください。',
             requestModified: 'このリクエストは別のメンバーによって編集されています',
             characterLimitExceedCounter: (length: number, limit: number) => `文字数制限を超えています（${length}/${limit}）`,
             dateInvalid: '有効な日付を選択してください',

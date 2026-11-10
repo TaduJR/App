@@ -50,7 +50,6 @@ import {isMapOrGPSRequired} from '@libs/PolicyDistanceRatesUtils';
 import {isPolicyExpenseChat as isPolicyExpenseChatUtil, isSelfDM} from '@libs/ReportUtils';
 import {getDistanceInMeters, getRateID, getRequestType, getSelectedRouteKey, hasManualDistanceOverride, haveWaypointAddressesChanged} from '@libs/TransactionUtils';
 import hasManualMapDistanceOverride from '@libs/TransactionUtils/hasManualMapDistanceOverride';
-import {getFixTheErrorsMessage} from '@libs/ValidationUtils';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -475,7 +474,7 @@ function DynamicIOURequestStepDistance({
         }
         if (isWaypointsNullIslandError) {
             return {
-                isWaypointsNullIslandError: getFixTheErrorsMessage(translate),
+                isWaypointsNullIslandError: translate('common.error.fixErrorsBeforeContinuing'),
             } as Errors;
         }
         if (duplicateWaypointsError) {

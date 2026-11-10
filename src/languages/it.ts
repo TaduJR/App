@@ -237,6 +237,7 @@ const translations: TranslationDeepObject<typeof en> = {
             phoneNumber: `Inserisci un numero di telefono completo
 (ad es. ${CONST.FORMATTED_EXAMPLE_PHONE_NUMBER})`,
             fieldRequired: 'Questo campo è obbligatorio',
+            fixErrorsBeforeContinuing: 'Per favore, correggi gli errori nel modulo prima di continuare.',
             requestModified: 'Questa richiesta viene modificata da un altro membro',
             characterLimitExceedCounter: (length: number, limit: number) => `Limite di caratteri superato (${length}/${limit})`,
             dateInvalid: 'Seleziona una data valida',

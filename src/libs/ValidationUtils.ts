@@ -872,14 +872,6 @@ function getMerchantErrorMessage(translate: LocalizedTranslate, error: MerchantV
 }
 
 /**
- * The line a form shows above its submit button while one of its fields has an error, for when the field itself may
- * be out of view.
- */
-function getFixTheErrorsMessage(translate: LocalizedTranslate): string {
-    return `${translate('common.please')} ${translate('common.fixTheErrors')} ${translate('common.inTheFormBeforeContinuing')}.`;
-}
-
-/**
  * Returns the first merchant validation error (required, invalid value, or too long), or `undefined` if the merchant is valid.
  */
 function getMerchantError(merchant: string | undefined, isMerchantRequired: boolean): MerchantValidationError | undefined {
@@ -988,7 +980,6 @@ export {
     isInvalidMerchantValue,
     getMerchantError,
     getMerchantErrorMessage,
-    getFixTheErrorsMessage,
     isUntypedPlaceholderMerchant,
     isMerchantBlank,
     isValidPIN,

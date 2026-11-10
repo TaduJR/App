@@ -308,6 +308,7 @@ const translations = {
             acceptTerms: 'You must accept the Terms of Service to continue',
             phoneNumber: `Please enter a complete phone number\n(e.g. ${CONST.FORMATTED_EXAMPLE_PHONE_NUMBER})`,
             fieldRequired: 'This field is required',
+            fixErrorsBeforeContinuing: 'Please fix the errors in the form before continuing.',
             requestModified: 'This request is being modified by another member',
             characterLimitExceedCounter: (length: number, limit: number) => `Character limit exceeded (${length}/${limit})`,
             dateInvalid: 'Please select a valid date',

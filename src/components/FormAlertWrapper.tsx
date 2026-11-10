@@ -2,8 +2,6 @@ import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useThemeStyles from '@hooks/useThemeStyles';
 
-import {getFixTheErrorsMessage} from '@libs/ValidationUtils';
-
 import type {ReactNode} from 'react';
 import type {StyleProp, ViewStyle} from 'react-native';
 
@@ -51,7 +49,7 @@ function FormAlertWrapper({
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
 
-    const defaultFixErrorsMessage = getFixTheErrorsMessage(translate);
+    const defaultFixErrorsMessage = translate('common.error.fixErrorsBeforeContinuing');
     const announcementMessage = message?.length ? message : defaultFixErrorsMessage;
 
     let content;

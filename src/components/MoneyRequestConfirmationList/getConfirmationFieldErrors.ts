@@ -30,7 +30,7 @@ type GetConfirmationFieldErrorsParams = {
 
     iouMerchant: string | undefined;
 
-    /** Whether this surface offers manual entry of the amount / merchant / date. False for splits, test receipts and moved tracked expenses. */
+    /** Whether this surface offers manual entry of the amount / merchant / date. False for test receipts and moved tracked expenses. */
     canEnterScanFieldsManually: boolean;
 
     /** Whether the expense goes to a workspace chat, the only destination where a manually entered Scan needs a merchant */

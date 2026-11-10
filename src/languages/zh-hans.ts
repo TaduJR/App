@@ -237,6 +237,7 @@ const translations: TranslationDeepObject<typeof en> = {
             phoneNumber: `请输入完整的电话号码
 （例如：${CONST.FORMATTED_EXAMPLE_PHONE_NUMBER}）`,
             fieldRequired: '此字段为必填项',
+            fixErrorsBeforeContinuing: '请先修复表单中的错误，然后再继续。',
             requestModified: '此请求正在被另一位成员修改',
             characterLimitExceedCounter: (length: number, limit: number) => `超出字符限制（${length}/${limit}）`,
             dateInvalid: '请选择一个有效日期',

@@ -241,6 +241,7 @@ const translations: TranslationDeepObject<typeof en> = {
             phoneNumber: `Παρακαλούμε εισαγάγετε έναν πλήρη αριθμό τηλεφώνου
 (π.χ. ${CONST.FORMATTED_EXAMPLE_PHONE_NUMBER})`,
             fieldRequired: 'Αυτό το πεδίο είναι υποχρεωτικό',
+            fixErrorsBeforeContinuing: 'Παρακαλώ διορθώστε τα σφάλματα στη φόρμα πριν συνεχίσετε.',
             requestModified: 'Αυτό το αίτημα τροποποιείται από άλλο μέλος',
             characterLimitExceedCounter: (length: number, limit: number) => `Υπέρβαση ορίου χαρακτήρων (${length}/${limit})`,
             dateInvalid: 'Παρακαλώ επιλέξτε έγκυρη ημερομηνία',

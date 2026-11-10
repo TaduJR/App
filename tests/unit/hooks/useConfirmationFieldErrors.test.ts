@@ -16,9 +16,6 @@ type Props = {
 
 const MISSING_AMOUNT: ConfirmationFieldErrors = {amount: 'common.error.fieldRequired'};
 
-// What the passthrough translate mock above turns the "Please fix the errors in the form before continuing" line into
-const FIX_THE_ERRORS = 'common.please common.fixTheErrors common.inTheFormBeforeContinuing.';
-
 function renderFieldErrors(initialProps: Props) {
     return renderHook(
         ({fieldErrors, partiallyManuallyFilledScanID, onSwitchToTransaction, formErrorMessage, routeError}: Props) =>
@@ -59,7 +56,7 @@ describe('useConfirmationFieldErrors', () => {
 
         // Then the field shows it, and the footer uses the line other forms show, since nothing is missing for "required fields" to describe
         expect(result.current.visibleFieldErrors).toEqual({amount: 'common.error.invalidAmount'});
-        expect(result.current.footerErrorMessage).toBe(FIX_THE_ERRORS);
+        expect(result.current.footerErrorMessage).toBe('common.error.fixErrorsBeforeContinuing');
     });
 
     it('asks for the required fields when a missing value and an invalid one block together', () => {
@@ -146,7 +143,20 @@ describe('useConfirmationFieldErrors', () => {
         expect(onSwitchToTransaction).toHaveBeenCalledWith('txn2');
     });
 
-    it('stays on the receipt on screen when it has field errors of its own', () => {
+    it('brings the partially filled sibling receipt on screen when the receipt on screen only holds an invalid value', () => {
+        // Given a multi-scan whose receipt on screen has a typed merchant that isn't allowed, while a sibling receipt is partially filled
+        const onSwitchToTransaction = jest.fn();
+        const {result} = renderFieldErrors({fieldErrors: {merchant: 'iou.error.invalidMerchant'}, partiallyManuallyFilledScanID: 'txn2', onSwitchToTransaction});
+
+        // When the confirm is blocked
+        act(() => result.current.revealFieldErrors());
+
+        // Then the sibling is brought on screen first, so the summary asking for the required fields matches the receipt the user sees
+        expect(onSwitchToTransaction).toHaveBeenCalledWith('txn2');
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
+    });
+
+    it('stays on the receipt on screen when one of its own fields is missing', () => {
         // Given a multi-scan whose receipt on screen is missing its amount, while a sibling receipt is also partially filled
         const onSwitchToTransaction = jest.fn();
         const {result} = renderFieldErrors({fieldErrors: MISSING_AMOUNT, partiallyManuallyFilledScanID: 'txn2', onSwitchToTransaction});

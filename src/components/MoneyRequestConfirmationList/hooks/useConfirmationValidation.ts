@@ -112,7 +112,7 @@ type UseConfirmationValidationParams = {
     /** Truthy when the route to the confirmation page has a known error */
     routeError: string | null | undefined;
 
-    /** Whether this surface offers manual entry of the amount / merchant / date. False for splits, test receipts and moved tracked expenses. */
+    /** Whether this surface offers manual entry of the amount / merchant / date. False for test receipts and moved tracked expenses. */
     canEnterScanFieldsManually: boolean;
 
     /** Whether the expense goes to a workspace chat, the only destination where a manually entered Scan needs a merchant */
@@ -133,8 +133,9 @@ type UseConfirmationValidationParams = {
 
 /**
  * Runs the set of pure validation checks for the Money Request confirmation
- * flow and returns either a translation key describing the first failure, or
- * a success signal. The amount, date and merchant checks come from
+ * flow and returns a translation key describing the first failure, a field
+ * error signal when the amount, date or merchant field blocks, or a success
+ * signal. The amount, date and merchant checks come from
  * `getConfirmationFieldErrors`, whose map is returned too so those fields render
  * exactly the errors that block confirmation.
  *
