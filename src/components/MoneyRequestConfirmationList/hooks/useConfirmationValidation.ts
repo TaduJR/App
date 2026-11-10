@@ -93,15 +93,6 @@ type UseConfirmationValidationParams = {
     /** Whether the merchant field is required for this flow */
     isMerchantRequired: boolean | undefined;
 
-    /** Whether the merchant value passes full validation (length, required, disallowed values) */
-    isMerchantFieldValid: boolean;
-
-    /** Whether the merchant field is empty / partial (from {@link useFormErrorManagement}) */
-    isMerchantEmpty: boolean;
-
-    /** When editing a split bill, whether per-field errors should be shown (SmartScan failure paths) */
-    shouldDisplayFieldError: boolean;
-
     /** Whether the tax section is enabled for this policy */
     shouldShowTax: boolean;
 
@@ -176,9 +167,6 @@ function useConfirmationValidation({
     currentUserPersonalDetails,
     isEditingSplitBill,
     isMerchantRequired,
-    isMerchantFieldValid,
-    isMerchantEmpty,
-    shouldDisplayFieldError,
     shouldShowTax,
     isDistanceRequest,
     isDistanceRequestWithPendingRoute,
@@ -205,9 +193,6 @@ function useConfirmationValidation({
         isReadOnly,
         isEditingSplitBill,
         isMerchantRequired,
-        isMerchantFieldValid,
-        isMerchantEmpty,
-        shouldDisplayFieldError,
         isDistanceRequest,
         isTimeRequest,
         currentUserAccountID: currentUserPersonalDetails.accountID,

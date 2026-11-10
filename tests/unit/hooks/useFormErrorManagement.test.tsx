@@ -29,7 +29,6 @@ type Params = Parameters<typeof useFormErrorManagement>[0];
 const baseParams: Params = {
     transaction: createMock<OnyxTypes.Transaction>({transactionID: 'txn1', amount: 100, merchant: 'Coffee', comment: {}}),
     transactionReport: undefined,
-    iouMerchant: 'Coffee',
     iouCategory: '',
     iouAttendees: [],
     policy: undefined,
@@ -46,20 +45,6 @@ const baseParams: Params = {
     isTypeSplit: false,
     shouldShowReadOnlySplits: false,
     isDistanceRequest: false,
-};
-
-// A manual draft the user never typed a merchant into: `initMoneyRequest` seeds it with the "Expense" placeholder.
-const placeholderMerchantTransaction = createMock<OnyxTypes.Transaction>({
-    transactionID: 'txn1',
-    amount: 100,
-    merchant: CONST.TRANSACTION.DEFAULT_MERCHANT,
-    isMerchantSet: false,
-    comment: {},
-});
-
-const placeholderMerchantParams: Partial<Params> = {
-    transaction: placeholderMerchantTransaction,
-    iouMerchant: CONST.TRANSACTION.DEFAULT_MERCHANT,
 };
 
 function Wrapper({children}: {children: React.ReactNode}) {
@@ -199,34 +184,10 @@ describe('useFormErrorManagement', () => {
         }
     });
 
-    it('treats the placeholder merchant of an untouched draft as empty, so it is only invalid while a merchant is required', () => {
-        const {result: required} = renderHook(() => useFormErrorManagement({...baseParams, ...placeholderMerchantParams, isPolicyExpenseChat: true}), {wrapper: Wrapper});
-        const {result: notRequired} = renderHook(() => useFormErrorManagement({...baseParams, ...placeholderMerchantParams, isPolicyExpenseChat: false}), {wrapper: Wrapper});
-
-        expect(required.current.isMerchantFieldValid).toBe(false);
-        expect(notRequired.current.isMerchantFieldValid).toBe(true);
-    });
-
-    it('keeps a placeholder merchant the user typed themselves invalid', () => {
-        const {result} = renderHook(
-            () =>
-                useFormErrorManagement({
-                    ...baseParams,
-                    ...placeholderMerchantParams,
-                    transaction: {...placeholderMerchantTransaction, isMerchantSet: true},
-                    isPolicyExpenseChat: false,
-                }),
-            {wrapper: Wrapper},
-        );
-
-        expect(result.current.isMerchantFieldValid).toBe(false);
-    });
-
     it('leaves the merchant optional on a scan the user has started filling in, since a blank field is still scanned', () => {
         const scanParams: Partial<Params> = {
             isScanRequest: true,
             isPolicyExpenseChat: false,
-            iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
         };
         const scanDraft = {
             transactionID: 'txn1',

@@ -45,10 +45,9 @@ const blankDraft: OnyxTypes.Transaction = {
 /** Wires the form error, validation, field error and confirm pieces together the way `useConfirmationListData` does. */
 function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
     const iouMerchant = getMerchant(transaction);
-    const {formError, setFormError, shouldDisplayFieldError, isMerchantEmpty, isMerchantFieldValid, isMerchantRequired, errorMessage} = useFormErrorManagement({
+    const {formError, setFormError, isMerchantRequired, errorMessage} = useFormErrorManagement({
         transaction,
         transactionReport: undefined,
-        iouMerchant,
         iouCategory: '',
         iouAttendees: [],
         policy: undefined,
@@ -84,9 +83,6 @@ function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
         currentUserPersonalDetails: CURRENT_USER,
         isEditingSplitBill: false,
         isMerchantRequired,
-        isMerchantFieldValid,
-        isMerchantEmpty,
-        shouldDisplayFieldError,
         shouldShowTax: false,
         isDistanceRequest: false,
         isDistanceRequestWithPendingRoute: false,

@@ -91,9 +91,6 @@ const baseParams = {
     currentUserPersonalDetails: {accountID: 1} as CurrentUserPersonalDetails,
     isEditingSplitBill: false,
     isMerchantRequired: false,
-    isMerchantFieldValid: true,
-    isMerchantEmpty: false,
-    shouldDisplayFieldError: false,
     shouldShowTax: false,
     isDistanceRequest: false,
     isDistanceRequestWithPendingRoute: false,
@@ -157,8 +154,6 @@ describe('useConfirmationValidation', () => {
                 iouMerchant: CONST.TRANSACTION.DEFAULT_MERCHANT,
                 transaction: createTransactionBase({amount: 100, merchant: CONST.TRANSACTION.DEFAULT_MERCHANT, isMerchantSet: false, participants: [P2P_PARTICIPANT]}),
                 isMerchantRequired: true,
-                isMerchantEmpty: true,
-                isMerchantFieldValid: false,
             }),
         );
 
@@ -168,8 +163,15 @@ describe('useConfirmationValidation', () => {
     });
 
     it('returns invalidMerchant when a required merchant was typed but is not valid', () => {
-        // Given a workspace expense whose typed merchant fails validation
-        const {result} = renderHook(() => useConfirmationValidation({...baseParams, isMerchantRequired: true, isMerchantEmpty: false, isMerchantFieldValid: false}));
+        // Given a workspace expense where the user typed the disallowed "(none)" as the merchant
+        const {result} = renderHook(() =>
+            useConfirmationValidation({
+                ...baseParams,
+                iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
+                transaction: createTransactionBase({amount: 100, merchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT, isMerchantSet: true, participants: [P2P_PARTICIPANT]}),
+                isMerchantRequired: true,
+            }),
+        );
 
         // When the user confirms
         // Then the merchant asks for a valid value instead of saying the field is required
@@ -182,7 +184,7 @@ describe('useConfirmationValidation', () => {
             useConfirmationValidation(
                 createValidationParamsForParticipant(
                     POLICY_EXPENSE_CHAT_PARTICIPANT,
-                    {iouAmount: 0, iouMerchant: CONST.TRANSACTION.DEFAULT_MERCHANT, isMerchantRequired: true, isMerchantEmpty: true, isMerchantFieldValid: false, isPolicyExpenseChat: true},
+                    {iouAmount: 0, iouMerchant: CONST.TRANSACTION.DEFAULT_MERCHANT, isMerchantRequired: true, isPolicyExpenseChat: true},
                     {amount: 0, isAmountSet: false, merchant: CONST.TRANSACTION.DEFAULT_MERCHANT, isMerchantSet: false},
                 ),
             ),
@@ -199,9 +201,15 @@ describe('useConfirmationValidation', () => {
         const {result} = renderHook(() =>
             useConfirmationValidation({
                 ...baseParams,
+                iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
                 isMerchantRequired: false,
-                isMerchantFieldValid: false,
-                transaction: createMock<OnyxTypes.Transaction>({transactionID: 'txn1', comment: {}, amount: 100, isMerchantSet: true}),
+                transaction: createMock<OnyxTypes.Transaction>({
+                    transactionID: 'txn1',
+                    comment: {},
+                    amount: 100,
+                    merchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
+                    isMerchantSet: true,
+                }),
             }),
         );
 
@@ -211,14 +219,24 @@ describe('useConfirmationValidation', () => {
     });
 
     it('returns null when merchant is not required and was not explicitly set', () => {
+        // Given an expense whose merchant is optional and still holds the "(none)" placeholder the user never typed
         const {result} = renderHook(() =>
             useConfirmationValidation({
                 ...baseParams,
+                iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
                 isMerchantRequired: false,
-                isMerchantFieldValid: false,
-                transaction: createMock<OnyxTypes.Transaction>({transactionID: 'txn1', comment: {}, amount: 100, isMerchantSet: false}),
+                transaction: createMock<OnyxTypes.Transaction>({
+                    transactionID: 'txn1',
+                    comment: {},
+                    amount: 100,
+                    merchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
+                    isMerchantSet: false,
+                }),
             }),
         );
+
+        // When the user confirms
+        // Then nothing blocks it, since an untyped placeholder in an optional field is just a blank merchant
         expect(result.current.validate()).toEqual({errorKey: null});
     });
 
@@ -1027,7 +1045,6 @@ describe('useConfirmationValidation', () => {
                 isPolicyExpenseChat: true,
                 iouAmount: 0,
                 iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
-                isMerchantEmpty: true,
                 ...overrides,
                 transaction: createTransactionBase({
                     iouRequestType: CONST.IOU.REQUEST_TYPE.SCAN,
@@ -1045,7 +1062,7 @@ describe('useConfirmationValidation', () => {
         });
 
         it.each([
-            ['merchant', {isMerchantSet: true, merchant: 'Starbucks'}, {iouMerchant: 'Starbucks', isMerchantEmpty: false}],
+            ['merchant', {isMerchantSet: true, merchant: 'Starbucks'}, {iouMerchant: 'Starbucks'}],
             ['amount', {isAmountSet: true, amount: 1000}, {iouAmount: 1000}],
             ['date', {isCreatedSet: true, created: '2025-01-15'}, {}],
         ])('requires the other two once the %s is entered, since the three are all-or-nothing', (_field, transactionOverrides, overrides) => {
@@ -1059,8 +1076,8 @@ describe('useConfirmationValidation', () => {
 
         it.each([
             ['merchant', {isAmountSet: true, amount: 1000, isCreatedSet: true, created: '2025-01-15'}, {iouAmount: 1000}],
-            ['amount', {isMerchantSet: true, merchant: 'Starbucks', isCreatedSet: true, created: '2025-01-15'}, {iouMerchant: 'Starbucks', isMerchantEmpty: false}],
-            ['date', {isAmountSet: true, amount: 1000, isMerchantSet: true, merchant: 'Starbucks'}, {iouAmount: 1000, iouMerchant: 'Starbucks', isMerchantEmpty: false}],
+            ['amount', {isMerchantSet: true, merchant: 'Starbucks', isCreatedSet: true, created: '2025-01-15'}, {iouMerchant: 'Starbucks'}],
+            ['date', {isAmountSet: true, amount: 1000, isMerchantSet: true, merchant: 'Starbucks'}, {iouAmount: 1000, iouMerchant: 'Starbucks'}],
         ])('still blocks confirmation while only the %s is left blank', (_field, transactionOverrides, overrides) => {
             // Given a workspace scan where the user entered two of the three fields and left this one blank
             const {result} = renderHook(() => useConfirmationValidation(createScanValidationParams(transactionOverrides, overrides)));
@@ -1102,7 +1119,7 @@ describe('useConfirmationValidation', () => {
                 useConfirmationValidation(
                     createScanValidationParams(
                         {isAmountSet: true, amount: 1000, isMerchantSet: true, merchant: 'Starbucks', isCreatedSet: true, created: '2025-01-15'},
-                        {iouAmount: 1000, iouMerchant: 'Starbucks', isMerchantEmpty: false},
+                        {iouAmount: 1000, iouMerchant: 'Starbucks'},
                     ),
                 ),
             );
@@ -1115,7 +1132,7 @@ describe('useConfirmationValidation', () => {
                 useConfirmationValidation(
                     createScanValidationParams(
                         {isAmountSet: true, amount: 0, isMerchantSet: true, merchant: 'Starbucks', isCreatedSet: true, created: '2025-01-15'},
-                        {iouAmount: 0, iouMerchant: 'Starbucks', isMerchantEmpty: false},
+                        {iouAmount: 0, iouMerchant: 'Starbucks'},
                     ),
                 ),
             );
@@ -1131,7 +1148,7 @@ describe('useConfirmationValidation', () => {
 
             // When the user fills in a negative amount and confirms
             const {result} = renderHook(() =>
-                useConfirmationValidation(createScanValidationParams(filledFields, {iouType: CONST.IOU.TYPE.CREATE, iouAmount: -1234, iouMerchant: 'Starbucks', isMerchantEmpty: false})),
+                useConfirmationValidation(createScanValidationParams(filledFields, {iouType: CONST.IOU.TYPE.CREATE, iouAmount: -1234, iouMerchant: 'Starbucks'})),
             );
 
             // Then it is rejected, since P2P chats don't support negative amounts
@@ -1153,7 +1170,6 @@ describe('useConfirmationValidation', () => {
                         iouType: CONST.IOU.TYPE.CREATE,
                         iouAmount: -1234,
                         iouMerchant: 'Starbucks',
-                        isMerchantEmpty: false,
                         selectedParticipants: [participant],
                     }),
                 ),
@@ -1169,7 +1185,7 @@ describe('useConfirmationValidation', () => {
                 useConfirmationValidation(
                     createScanValidationParams(
                         {isAmountSet: true, amount: 1000, isMerchantSet: true, merchant: 'Starbucks', isCreatedSet: true, created: '2025-01-15'},
-                        {iouAmount: 1000, iouMerchant: 'Starbucks', isMerchantEmpty: false, partiallyManuallyFilledScanID: 'other-txn'},
+                        {iouAmount: 1000, iouMerchant: 'Starbucks', partiallyManuallyFilledScanID: 'other-txn'},
                     ),
                 ),
             );
@@ -1184,7 +1200,7 @@ describe('useConfirmationValidation', () => {
                 useConfirmationValidation(
                     createScanValidationParams(
                         {isAmountSet: true, amount: 1000, isMerchantSet: true, merchant: 'Starbucks', isCreatedSet: true, created: '2025-01-15'},
-                        {iouAmount: 1000, iouMerchant: 'Starbucks', isMerchantEmpty: false, partiallyManuallyFilledScanID: undefined},
+                        {iouAmount: 1000, iouMerchant: 'Starbucks', partiallyManuallyFilledScanID: undefined},
                     ),
                 ),
             );

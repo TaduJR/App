@@ -156,10 +156,9 @@ function useConfirmationListDataWithPolicy({
     // The date field is rendered under the same condition, so a hidden date is never reported missing.
     const shouldShowDate = shouldShowConfirmationDate(shouldShowSmartScanFields, isDistanceRequest);
 
-    const {formError, setFormError, clearFormErrors, shouldDisplayFieldError, isMerchantEmpty, isMerchantFieldValid, isMerchantRequired, errorMessage} = useFormErrorManagement({
+    const {formError, setFormError, clearFormErrors, shouldDisplayFieldError, isMerchantRequired, errorMessage} = useFormErrorManagement({
         transaction,
         transactionReport,
-        iouMerchant,
         iouCategory,
         iouAttendees,
         policy,
@@ -234,9 +233,6 @@ function useConfirmationListDataWithPolicy({
         currentUserPersonalDetails,
         isEditingSplitBill,
         isMerchantRequired,
-        isMerchantFieldValid,
-        isMerchantEmpty,
-        shouldDisplayFieldError,
         shouldShowTax,
         isDistanceRequest,
         isDistanceRequestWithPendingRoute,

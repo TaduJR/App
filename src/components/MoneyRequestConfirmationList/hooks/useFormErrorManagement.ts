@@ -2,8 +2,7 @@ import useDebouncedState from '@hooks/useDebouncedState';
 import useLocalize from '@hooks/useLocalize';
 
 import {isAttendeeTrackingEnabled} from '@libs/PolicyUtils';
-import {areRequiredFieldsEmpty, getTag, hasMissingSmartscanFields, isMerchantMissing} from '@libs/TransactionUtils';
-import {isInvalidMerchantValue, isMerchantBlank, isValidInputLength} from '@libs/ValidationUtils';
+import {areRequiredFieldsEmpty, getTag, hasMissingSmartscanFields} from '@libs/TransactionUtils';
 import {getIsViolationFixed} from '@libs/Violations/ViolationsUtils';
 
 import CONST from '@src/CONST';
@@ -23,9 +22,6 @@ type UseFormErrorManagementParams = {
 
     /** Report the IOU is being created on */
     transactionReport: OnyxEntry<OnyxTypes.Report>;
-
-    /** Current merchant value entered for the IOU */
-    iouMerchant: string | undefined;
 
     /** Currently selected category */
     iouCategory: string;
@@ -91,14 +87,8 @@ type UseFormErrorManagementResult = {
     /** Whether per-field errors should be shown (only true when editing a split bill) */
     shouldDisplayFieldError: boolean;
 
-    /** Whether the merchant field is currently empty / partial */
-    isMerchantEmpty: boolean;
-
     /** Whether the merchant field is required for this flow */
     isMerchantRequired: boolean;
-
-    /** Whether the current merchant value passes validation */
-    isMerchantFieldValid: boolean;
 
     /** Whether a previously surfaced violation has been resolved */
     isViolationFixed: boolean;
@@ -111,8 +101,8 @@ type UseFormErrorManagementResult = {
  * Owns the form-error state for the Money Request confirmation flow.
  *
  * Holds a debounced form-error string, exposes setters and clearing helpers used by the
- * controllers, and derives merchant validity, the violation-fixed flag, and the user-
- * visible error message. `shouldDisplayFieldError` is gated on edit-split-bill mode so
+ * controllers, and derives whether the merchant is required, the violation-fixed flag, and the
+ * user-visible error message. `shouldDisplayFieldError` is gated on edit-split-bill mode so
  * field-level errors only render in that flow. `errorMessage` prefers `routeError`,
  * then leaves out the errors their own field already shows (missingAttendees, the tax amount
  * error, and the invalid amount an edited split flags as the user types) so they don't show twice.
@@ -122,7 +112,6 @@ type UseFormErrorManagementResult = {
 function useFormErrorManagement({
     transaction,
     transactionReport,
-    iouMerchant,
     iouCategory,
     iouAttendees,
     policy,
@@ -157,22 +146,7 @@ function useFormErrorManagement({
         !!isEditingSplitBill &&
         ((!!hasSmartScanFailed && hasMissingSmartscanFields(transaction, transactionReport)) || (didConfirmSplit && areRequiredFieldsEmpty(transaction, transactionReport)));
 
-    const isMerchantEmpty = !iouMerchant || isMerchantMissing(transaction);
     const isMerchantRequired = isPolicyExpenseChat && (!isScanRequest || !!isEditingSplitBill) && shouldShowMerchant;
-    const isMerchantFieldValid = (() => {
-        const merchantValue = iouMerchant ?? '';
-        const {isValid} = isValidInputLength(merchantValue, CONST.MERCHANT_NAME_MAX_BYTES);
-
-        if (!isValid) {
-            return false;
-        }
-
-        if (isMerchantBlank(transaction?.isMerchantSet, merchantValue)) {
-            return !isMerchantRequired;
-        }
-
-        return !isInvalidMerchantValue(merchantValue.trim());
-    })();
 
     const isViolationFixed = getIsViolationFixed(formError, {
         category: iouCategory,
@@ -255,9 +229,7 @@ function useFormErrorManagement({
         setFormError,
         clearFormErrors,
         shouldDisplayFieldError,
-        isMerchantEmpty,
         isMerchantRequired,
-        isMerchantFieldValid,
         isViolationFixed,
         errorMessage,
     };

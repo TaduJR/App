@@ -18,19 +18,14 @@ const baseParams: GetConfirmationFieldErrorsParams = {
     isReadOnly: false,
     isEditingSplitBill: false,
     isMerchantRequired: true,
-    isMerchantFieldValid: true,
-    isMerchantEmpty: false,
-    shouldDisplayFieldError: false,
     isDistanceRequest: false,
     isTimeRequest: false,
     currentUserAccountID: 1,
 };
 
-// What `useFormErrorManagement` passes for a workspace expense whose merchant still holds the "Expense" placeholder
+// A merchant that still holds the "Expense" placeholder the draft was seeded with
 const blankRequiredMerchantParams: Partial<GetConfirmationFieldErrorsParams> = {
     iouMerchant: CONST.TRANSACTION.DEFAULT_MERCHANT,
-    isMerchantFieldValid: false,
-    isMerchantEmpty: true,
 };
 
 function createManualTransaction(overrides: Partial<OnyxTypes.Transaction> = {}): OnyxTypes.Transaction {
@@ -106,7 +101,7 @@ describe('getConfirmationFieldErrors', () => {
         const transaction = createManualTransaction({merchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT, isMerchantSet: true});
 
         // When its field errors are computed
-        const fieldErrors = getConfirmationFieldErrors(transaction, {...baseParams, iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT, isMerchantFieldValid: false});
+        const fieldErrors = getConfirmationFieldErrors(transaction, {...baseParams, iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT});
 
         // Then the merchant asks for a valid value instead of saying the field is required
         expect(fieldErrors).toEqual({merchant: 'iou.error.invalidMerchant'});
@@ -122,11 +117,25 @@ describe('getConfirmationFieldErrors', () => {
             iouType: CONST.IOU.TYPE.SPLIT,
             iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
             isEditingSplitBill: true,
-            isMerchantEmpty: true,
-            isMerchantFieldValid: false,
         });
 
         // Then the merchant asks for a valid value, since "This field is required" would be wrong for a value the user typed
+        expect(fieldErrors).toEqual({merchant: 'iou.error.invalidMerchant'});
+    });
+
+    it('flags a placeholder value the user typed into an optional merchant', () => {
+        // Given an expense to a user, whose merchant is optional, where the user typed the "Expense" placeholder themselves
+        const transaction = createManualTransaction({merchant: CONST.TRANSACTION.DEFAULT_MERCHANT, isMerchantSet: true, participants: [P2P_PARTICIPANT]});
+
+        // When its field errors are computed
+        const fieldErrors = getConfirmationFieldErrors(transaction, {
+            ...baseParams,
+            iouMerchant: CONST.TRANSACTION.DEFAULT_MERCHANT,
+            isPolicyExpenseChat: false,
+            isMerchantRequired: false,
+        });
+
+        // Then the merchant is invalid, since a typed placeholder is an entry the user made rather than a blank field
         expect(fieldErrors).toEqual({merchant: 'iou.error.invalidMerchant'});
     });
 
@@ -140,7 +149,6 @@ describe('getConfirmationFieldErrors', () => {
             ...blankRequiredMerchantParams,
             isPolicyExpenseChat: false,
             isMerchantRequired: false,
-            isMerchantFieldValid: true,
         });
 
         // Then the merchant is no longer reported

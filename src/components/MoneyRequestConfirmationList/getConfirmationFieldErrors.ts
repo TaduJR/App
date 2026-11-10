@@ -7,7 +7,7 @@
 import {isP2PRecipient, isParticipantP2P} from '@libs/IOUUtils';
 import {isConfirmationAmountMissing, isConfirmationDateMissing, isConfirmationMerchantMissing, isValidMoneyRequestAmount} from '@libs/MoneyRequestUtils';
 import {isMerchantMissing, isScanRequest} from '@libs/TransactionUtils';
-import {isMerchantBlank, isValidInputLength} from '@libs/ValidationUtils';
+import {isInvalidMerchantValue, isMerchantBlank, isValidInputLength} from '@libs/ValidationUtils';
 
 import type {IOUType} from '@src/CONST';
 import CONST from '@src/CONST';
@@ -45,15 +45,6 @@ type GetConfirmationFieldErrorsParams = {
     isEditingSplitBill: boolean | undefined;
 
     isMerchantRequired: boolean | undefined;
-
-    /** Whether the merchant passes full validation (length, required, disallowed values) */
-    isMerchantFieldValid: boolean;
-
-    /** Whether the merchant is empty or a placeholder, as `isMerchantMissing` sees it on the transaction */
-    isMerchantEmpty: boolean;
-
-    /** When editing a split bill, whether its SmartScan failed with fields still missing */
-    shouldDisplayFieldError: boolean;
 
     isDistanceRequest: boolean;
 
@@ -101,9 +92,11 @@ function getAmountFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, para
 }
 
 function getMerchantFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, params: GetConfirmationFieldErrorsParams): TranslationPaths | undefined {
-    const {iouMerchant, canEnterScanFieldsManually, isPolicyExpenseChat, isEditingSplitBill, isMerchantRequired, isMerchantFieldValid, isMerchantEmpty, shouldDisplayFieldError} = params;
+    const {iouMerchant, canEnterScanFieldsManually, isPolicyExpenseChat, isEditingSplitBill, isMerchantRequired} = params;
+    const merchant = iouMerchant ?? '';
 
-    if (!isValidInputLength(iouMerchant ?? '', CONST.MERCHANT_NAME_MAX_BYTES).isValid) {
+    // The confirmation saves the merchant as typed, so its length is checked before trimming.
+    if (!isValidInputLength(merchant, CONST.MERCHANT_NAME_MAX_BYTES).isValid) {
         return 'iou.error.invalidMerchant';
     }
 
@@ -112,23 +105,25 @@ function getMerchantFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, pa
         return 'common.error.fieldRequired';
     }
 
+    const isBlank = isMerchantBlank(transaction?.isMerchantSet, merchant);
+    const isTypedValueInvalid = !isBlank && isInvalidMerchantValue(merchant.trim());
+
     if (!isMerchantRequired) {
         // An optional merchant is only checked once the user typed one in.
-        return transaction?.isMerchantSet && !isMerchantFieldValid ? 'iou.error.invalidMerchant' : undefined;
+        return transaction?.isMerchantSet && isTypedValueInvalid ? 'iou.error.invalidMerchant' : undefined;
     }
 
     // A split draft doesn't record whether the user typed its merchant, so a placeholder the user typed can't be told
     // apart from one the split was seeded with, and an edited split keeps the generic invalid message for both.
     if (isEditingSplitBill) {
-        return isMerchantEmpty || (shouldDisplayFieldError && isMerchantMissing(transaction)) ? 'iou.error.invalidMerchant' : undefined;
-    }
-
-    if (isMerchantFieldValid) {
-        return undefined;
+        return !merchant || isMerchantMissing(transaction) ? 'iou.error.invalidMerchant' : undefined;
     }
 
     // A required merchant left blank reads the same as the other required fields, and only a typed one is "invalid".
-    return isMerchantBlank(transaction?.isMerchantSet, iouMerchant) ? 'common.error.fieldRequired' : 'iou.error.invalidMerchant';
+    if (isBlank) {
+        return 'common.error.fieldRequired';
+    }
+    return isTypedValueInvalid ? 'iou.error.invalidMerchant' : undefined;
 }
 
 /** Returns the error each inline field of the confirmation would show right now, keyed by field. Empty when nothing blocks. */
