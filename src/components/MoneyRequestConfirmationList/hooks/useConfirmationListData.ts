@@ -157,7 +157,7 @@ function useConfirmationListDataWithPolicy({
     // The date field is rendered under the same condition, so a hidden date is never reported missing.
     const shouldShowDate = shouldShowConfirmationDate(shouldShowSmartScanFields, isDistanceRequest);
 
-    const {formError, setFormError, clearFormErrors, shouldDisplayFieldError, errorMessage} = useFormErrorManagement({
+    const {formError, setFormError, clearFormErrors, setConfirmError, clearConfirmError, shouldDisplayFieldError, errorMessage} = useFormErrorManagement({
         transaction,
         transactionReport,
         iouCategory,
@@ -261,7 +261,8 @@ function useConfirmationListDataWithPolicy({
         formError,
         isDelegateAccessRestricted,
         validate,
-        setFormError,
+        setConfirmError,
+        clearConfirmError,
         revealFieldErrors,
         setDidConfirmSplit,
         showDelegateNoAccessModal,

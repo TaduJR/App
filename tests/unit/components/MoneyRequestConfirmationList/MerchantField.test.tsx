@@ -1,4 +1,4 @@
-import {render, renderHook, screen} from '@testing-library/react-native';
+import {fireEvent, render, renderHook, screen} from '@testing-library/react-native';
 
 import MenuItem from '@components/MenuItem';
 import ConfirmationFieldsProvider from '@components/MoneyRequestConfirmationFields/Provider';
@@ -6,6 +6,8 @@ import ExpenseFormLayoutContext, {dropdownRowsExpenseFormLayout} from '@componen
 import MerchantField from '@components/MoneyRequestConfirmationList/sections/MerchantField';
 
 import useThemeStyles from '@hooks/useThemeStyles';
+
+import {setDraftSplitTransaction} from '@userActions/IOU/Split';
 
 import CONST from '@src/CONST';
 
@@ -93,5 +95,32 @@ describe('MerchantField read-only dropdown row', () => {
         // Then the actual validation message is preserved and the row still has no edit control
         expect(screen.getByText(expectedError)).toBeOnTheScreen();
         expect(screen.queryByRole('button')).toBeNull();
+    });
+});
+
+describe('MerchantField on an edited split', () => {
+    it('records that the merchant was typed, so a placeholder the user typed can be told apart from one the split was seeded with', () => {
+        // Given an editable split showing its merchant input
+        render(
+            <ConfirmationFieldsProvider
+                transactionID="1"
+                reportID="2"
+                action={CONST.IOU.ACTION.CREATE}
+                iouType={CONST.IOU.TYPE.SPLIT}
+                isEditingSplitBill
+            >
+                <MerchantField
+                    isMerchantRequired
+                    shouldDisplayFieldError={false}
+                    fieldError={undefined}
+                />
+            </ConfirmationFieldsProvider>,
+        );
+
+        // When the user types a merchant
+        fireEvent.changeText(screen.getByLabelText('common.merchant'), 'Hilton');
+
+        // Then the split draft gets the merchant together with the flag that it was typed
+        expect(setDraftSplitTransaction).toHaveBeenCalledWith('1', undefined, {merchant: 'Hilton', isMerchantSet: true}, expect.any(Function), expect.any(Function));
     });
 });

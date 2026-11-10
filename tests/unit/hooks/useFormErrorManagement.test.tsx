@@ -88,6 +88,44 @@ describe('useFormErrorManagement', () => {
         expect(result.current.formError).toBe('');
     });
 
+    it('drops the error a confirm set once a later confirm asks for it to be cleared', () => {
+        // Given a confirm that was blocked by an empty tax amount
+        const {result} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
+        act(() => result.current.setConfirmError('iou.error.invalidAmount'));
+        expect(result.current.formError).toBe('iou.error.invalidAmount');
+
+        // When a later confirm is blocked by a field error instead
+        act(() => result.current.clearConfirmError());
+
+        // Then the error is dropped, since validation checks it again on the next confirm
+        expect(result.current.formError).toBe('');
+    });
+
+    it('keeps an error set outside validation when a confirm asks to clear its own', () => {
+        // Given a form error the distance rate check raised
+        const {result} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
+        act(() => result.current.setFormError('iou.error.invalidRate'));
+
+        // When a confirm blocked by a field error asks to clear its own error
+        act(() => result.current.clearConfirmError());
+
+        // Then the distance rate error stays, since validation doesn't check it again and it still has to block confirming
+        expect(result.current.formError).toBe('iou.error.invalidRate');
+    });
+
+    it('keeps an error that replaced the one a confirm set', () => {
+        // Given a confirm blocked by an empty tax amount, after which the distance rate check raised its own error
+        const {result} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
+        act(() => result.current.setConfirmError('iou.error.invalidAmount'));
+        act(() => result.current.setFormError('iou.error.invalidRate'));
+
+        // When a confirm blocked by a field error asks to clear its own error
+        act(() => result.current.clearConfirmError());
+
+        // Then the distance rate error stays, since it is no longer the one the confirm set
+        expect(result.current.formError).toBe('iou.error.invalidRate');
+    });
+
     it('errorMessage returns undefined for violations.missingAttendees on non-split flows', async () => {
         const {result} = renderHook(() => useFormErrorManagement(baseParams), {wrapper: Wrapper});
         act(() => result.current.setFormError('violations.missingAttendees'));

@@ -39,8 +39,11 @@ type BuildConfirmActionParams = {
     /** Returns the first check that blocks confirming, `{errorKey: null}` when none does, or null when validation can't run yet */
     validate: (paymentType?: PaymentMethodType) => ValidationResult | null;
 
-    /** Setter for the form-level error key */
-    setFormError: (error: TranslationPaths | '') => void;
+    /** Sets the form error for a check that blocks confirming */
+    setConfirmError: (error: TranslationPaths) => void;
+
+    /** Drops the form error the last confirm set, since validation checks it again on the next confirm */
+    clearConfirmError: () => void;
 
     /** Shows the errors of the amount, date and merchant fields, which render on the fields rather than in the form error */
     revealFieldErrors: () => void;
@@ -61,8 +64,8 @@ type BuildConfirmActionParams = {
 /**
  * Owns the click-confirm action for the Money Request confirmation flow.
  *
- * Validation always runs first. A field error is revealed on its field, and any other failure becomes the
- * form error. Past validation there are three branches: (1) invoice-without-company-info routes to the
+ * Validation always runs first. A field error is revealed on its field, dropping a form error an earlier confirm
+ * set, and any other failure becomes the form error. Past validation there are three branches: (1) invoice-without-company-info routes to the
  * company info step; (2) non-PAY types invoke `onConfirm`; (3) PAY types run delegate-access gating and
  * invoke `onSendMoney` with the chosen payment method.
  */
@@ -74,7 +77,8 @@ function buildConfirmAction({
     formError,
     isDelegateAccessRestricted,
     validate,
-    setFormError,
+    setConfirmError,
+    clearConfirmError,
     revealFieldErrors,
     setDidConfirmSplit,
     showDelegateNoAccessModal,
@@ -88,6 +92,7 @@ function buildConfirmAction({
         }
 
         if ('isFieldError' in result) {
+            clearConfirmError();
             revealFieldErrors();
             return;
         }
@@ -96,7 +101,7 @@ function buildConfirmAction({
             if (result.shouldSetDidConfirmSplit) {
                 setDidConfirmSplit(true);
             }
-            setFormError(result.errorKey);
+            setConfirmError(result.errorKey);
             return;
         }
 

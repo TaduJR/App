@@ -24,7 +24,8 @@ function makeBase(overrides: Partial<Params> = {}): Params {
         formError: '',
         isDelegateAccessRestricted: false,
         validate: jest.fn(() => ({errorKey: null})),
-        setFormError: jest.fn(),
+        setConfirmError: jest.fn(),
+        clearConfirmError: jest.fn(),
         revealFieldErrors: jest.fn(),
         setDidConfirmSplit: jest.fn(),
         showDelegateNoAccessModal: jest.fn(),
@@ -51,7 +52,7 @@ describe('buildConfirmAction', () => {
         const params = makeBase({validate: jest.fn(() => null)});
         buildConfirmAction(params)({paymentType: undefined});
         expect(params.onConfirm).not.toHaveBeenCalled();
-        expect(params.setFormError).not.toHaveBeenCalled();
+        expect(params.setConfirmError).not.toHaveBeenCalled();
     });
 
     it('sets form error when validation returns an errorKey', () => {
@@ -62,21 +63,22 @@ describe('buildConfirmAction', () => {
         buildConfirmAction(params)({paymentType: undefined});
 
         // Then the error becomes the form error shown above the button, and no field errors are revealed
-        expect(params.setFormError).toHaveBeenCalledWith('iou.error.noParticipantSelected');
+        expect(params.setConfirmError).toHaveBeenCalledWith('iou.error.noParticipantSelected');
         expect(params.revealFieldErrors).not.toHaveBeenCalled();
         expect(params.onConfirm).not.toHaveBeenCalled();
     });
 
-    it('reveals a field error on its field instead of setting it as the form error', () => {
+    it('reveals a field error on its field and drops the error an earlier confirm set', () => {
         // Given a confirmation whose amount field is missing a value, while an error from an earlier confirm is still set
         const params = makeBase({formError: 'violations.categoryOutOfPolicy', validate: jest.fn(() => ({isFieldError: true as const}))});
 
         // When the user confirms
         buildConfirmAction(params)({paymentType: undefined});
 
-        // Then the field errors are revealed and the earlier error is left set, so it still blocks confirming once the fields are filled in
+        // Then the field errors are revealed and the earlier confirm's error is dropped, since validation checks it again on the next confirm
         expect(params.revealFieldErrors).toHaveBeenCalledTimes(1);
-        expect(params.setFormError).not.toHaveBeenCalled();
+        expect(params.clearConfirmError).toHaveBeenCalledTimes(1);
+        expect(params.setConfirmError).not.toHaveBeenCalled();
         expect(params.onConfirm).not.toHaveBeenCalled();
     });
 
@@ -86,7 +88,7 @@ describe('buildConfirmAction', () => {
         });
         buildConfirmAction(params)({paymentType: undefined});
         expect(params.setDidConfirmSplit).toHaveBeenCalledWith(true);
-        expect(params.setFormError).toHaveBeenCalledWith('iou.error.genericSmartscanFailureMessage');
+        expect(params.setConfirmError).toHaveBeenCalledWith('iou.error.genericSmartscanFailureMessage');
     });
 
     it('does not call onConfirm when formError is already set', () => {

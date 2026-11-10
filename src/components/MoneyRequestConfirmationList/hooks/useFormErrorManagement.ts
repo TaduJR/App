@@ -14,7 +14,7 @@ import type {CurrentUserPersonalDetails} from '@src/types/onyx/PersonalDetails';
 import type {OnyxEntry} from 'react-native-onyx';
 
 import {useIsFocused} from '@react-navigation/native';
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 type UseFormErrorManagementParams = {
     /** Transaction being confirmed */
@@ -72,6 +72,12 @@ type UseFormErrorManagementResult = {
     /** Clears the current form error if it matches one of the provided keys */
     clearFormErrors: (errors: string[]) => void;
 
+    /** Sets the form error for a check that blocked confirming, and remembers that the confirm set it */
+    setConfirmError: (error: TranslationPaths) => void;
+
+    /** Drops the form error only while it is the one the last confirm set, so an error raised outside validation stays */
+    clearConfirmError: () => void;
+
     /** Whether per-field errors should be shown (only true when editing a split bill) */
     shouldDisplayFieldError: boolean;
 
@@ -120,6 +126,22 @@ function useFormErrorManagement({
             return;
         }
 
+        setFormError('');
+    };
+
+    // Validation raises a confirm's own error again on the next confirm, so a confirm blocked by a field error can drop it, but an error set outside validation would not come back and has to stay.
+    const [confirmErrorKey, setConfirmErrorKey] = useState<TranslationPaths | ''>('');
+
+    const setConfirmError = (error: TranslationPaths) => {
+        setConfirmErrorKey(error);
+        setFormError(error);
+    };
+
+    const clearConfirmError = () => {
+        if (!formError || formError !== confirmErrorKey) {
+            return;
+        }
+        setConfirmErrorKey('');
         setFormError('');
     };
 
@@ -204,6 +226,8 @@ function useFormErrorManagement({
         debouncedFormError,
         setFormError,
         clearFormErrors,
+        setConfirmError,
+        clearConfirmError,
         shouldDisplayFieldError,
         isViolationFixed,
         errorMessage,

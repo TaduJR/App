@@ -107,36 +107,24 @@ describe('getConfirmationFieldErrors', () => {
         expect(fieldErrors).toEqual({merchant: 'iou.error.invalidMerchant'});
     });
 
-    it('keeps the invalid merchant message on an edited split, whose draft does not record a typed merchant', () => {
-        // Given a workspace split being edited whose draft merchant is the "(none)" placeholder, which the user may have typed
-        const transaction = createManualTransaction({merchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT, isMerchantSet: undefined});
+    it.each([
+        ['the "(none)" placeholder the split was seeded with', CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT, undefined, 'common.error.fieldRequired'],
+        ['a merchant the user cleared', '', false, 'common.error.fieldRequired'],
+        ['the "(none)" placeholder the user typed', CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT, true, 'iou.error.invalidMerchant'],
+    ] as const)('reports %s on an edited split the same way as on a new expense', (_case, merchant, isMerchantSet, expectedError) => {
+        // Given a workspace split being edited with this merchant
+        const transaction = createManualTransaction({merchant, isMerchantSet});
 
         // When its field errors are computed
         const fieldErrors = getConfirmationFieldErrors(transaction, {
             ...baseParams,
             iouType: CONST.IOU.TYPE.SPLIT,
-            iouMerchant: CONST.TRANSACTION.PARTIAL_TRANSACTION_MERCHANT,
+            iouMerchant: merchant,
             isEditingSplitBill: true,
         });
 
-        // Then the merchant asks for a valid value, since "This field is required" would be wrong for a value the user typed
-        expect(fieldErrors).toEqual({merchant: 'iou.error.invalidMerchant'});
-    });
-
-    it('reports an emptied merchant on an edited split as required', () => {
-        // Given a workspace split being edited whose merchant the user cleared, which the split draft stores as an empty string
-        const transaction = createManualTransaction({merchant: '', isMerchantSet: false});
-
-        // When its field errors are computed
-        const fieldErrors = getConfirmationFieldErrors(transaction, {
-            ...baseParams,
-            iouType: CONST.IOU.TYPE.SPLIT,
-            iouMerchant: '',
-            isEditingSplitBill: true,
-        });
-
-        // Then the merchant reads as missing, the same as a blank merchant on a new expense, since an empty value can't be a typed placeholder
-        expect(fieldErrors).toEqual({merchant: 'common.error.fieldRequired'});
+        // Then a merchant the field shows as blank reads as required, and only one the user typed reads as invalid
+        expect(fieldErrors).toEqual({merchant: expectedError});
     });
 
     it('flags a placeholder value the user typed into an optional merchant', () => {

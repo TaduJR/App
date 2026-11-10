@@ -107,7 +107,7 @@ function MerchantField({isMerchantRequired, shouldDisplayFieldError, fieldError}
                 setDraftSplitTransaction(transactionID, baseTransaction, {merchant: '', isMerchantSet: false}, getCurrencyDecimals, getCurrencySymbol);
                 return;
             }
-            setDraftSplitTransaction(transactionID, baseTransaction, {merchant: newMerchant}, getCurrencyDecimals, getCurrencySymbol);
+            setDraftSplitTransaction(transactionID, baseTransaction, {merchant: newMerchant, isMerchantSet: true}, getCurrencyDecimals, getCurrencySymbol);
             return;
         }
 

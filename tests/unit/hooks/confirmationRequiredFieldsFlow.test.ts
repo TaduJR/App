@@ -44,11 +44,11 @@ const blankDraft: OnyxTypes.Transaction = {
     participants: [WORKSPACE_PARTICIPANT],
 };
 
-/** Wires the form error, validation, field error and confirm pieces together the way `useConfirmationListData` does. */
-function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
+/** Wires the form error, validation, field error and confirm pieces together the way `useConfirmationListData` does, on a workspace that tracks tax. */
+function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction, isTaxAmountEmpty = false) {
     const iouMerchant = getMerchant(transaction);
     const isMerchantRequired = isConfirmationMerchantRequired({isPolicyExpenseChat: true, isScanRequest: false, isEditingSplitBill: false, shouldShowMerchant: true});
-    const {formError, setFormError, errorMessage} = useFormErrorManagement({
+    const {formError, setConfirmError, clearConfirmError, errorMessage} = useFormErrorManagement({
         transaction,
         transactionReport: undefined,
         iouCategory: '',
@@ -82,7 +82,7 @@ function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
         currentUserPersonalDetails: CURRENT_USER,
         isEditingSplitBill: false,
         isMerchantRequired,
-        shouldShowTax: false,
+        shouldShowTax: true,
         isDistanceRequest: false,
         isDistanceRequestWithPendingRoute: false,
         isPerDiemRequest: false,
@@ -93,7 +93,7 @@ function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
         isPolicyExpenseChat: true,
         isReadOnly: false,
         shouldShowDate: true,
-        isTaxAmountEmpty: false,
+        isTaxAmountEmpty,
     });
     const {visibleFieldErrors, footerErrorMessage, revealFieldErrors} = useConfirmationFieldErrors({
         fieldErrors,
@@ -110,7 +110,8 @@ function useManualWorkspaceConfirmation(transaction: OnyxTypes.Transaction) {
         formError,
         isDelegateAccessRestricted: false,
         validate,
-        setFormError,
+        setConfirmError,
+        clearConfirmError,
         revealFieldErrors,
         setDidConfirmSplit: jest.fn(),
         showDelegateNoAccessModal: jest.fn(),
@@ -186,6 +187,35 @@ describe('required fields on a manual workspace expense', () => {
         act(() => result.current.confirm());
 
         // Then the expense is confirmed
+        expect(mockOnConfirm).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not let the tax error of a removed expense block the one left on screen', () => {
+        // Given a confirmation of several expenses where Create was blocked by the empty tax amount of the one on screen
+        const expenseWithEmptyTax = {...blankDraft, amount: 2500, isAmountSet: true, merchant: 'Hilton', isMerchantSet: true};
+        const {result, rerender} = renderHook(
+            ({transaction, isTaxAmountEmpty}: {transaction: OnyxTypes.Transaction; isTaxAmountEmpty: boolean}) => useManualWorkspaceConfirmation(transaction, isTaxAmountEmpty),
+            {
+                initialProps: {transaction: expenseWithEmptyTax, isTaxAmountEmpty: true},
+            },
+        );
+        act(() => result.current.confirm());
+        expect(result.current.footerErrorMessage).toBe('iou.error.invalidAmount');
+
+        // When the user removes that expense, and Create on the one left is blocked by its blank merchant
+        const remainingExpense = {...expenseWithEmptyTax, transactionID: 'txn2', merchant: CONST.TRANSACTION.DEFAULT_MERCHANT, isMerchantSet: false};
+        rerender({transaction: remainingExpense, isTaxAmountEmpty: false});
+        act(() => result.current.confirm());
+
+        // Then only the required fields summary explains the block
+        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
+
+        // When the user fills in the merchant and presses Create again
+        rerender({transaction: {...remainingExpense, merchant: 'Office Depot', isMerchantSet: true}, isTaxAmountEmpty: false});
+        expect(result.current.footerErrorMessage).toBeUndefined();
+        act(() => result.current.confirm());
+
+        // Then the expense is confirmed, since the tax error belonged to the expense that was removed
         expect(mockOnConfirm).toHaveBeenCalledTimes(1);
     });
 });
