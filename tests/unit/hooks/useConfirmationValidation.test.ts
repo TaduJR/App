@@ -489,7 +489,7 @@ describe('useConfirmationValidation', () => {
 
         describe('P2P participant', () => {
             it.each([CONST.IOU.TYPE.SUBMIT, CONST.IOU.TYPE.CREATE, CONST.IOU.TYPE.PAY, CONST.IOU.TYPE.SPLIT])(
-                'returns invalidAmount (not fieldRequired) for unset manual amount when iouType is %s',
+                'returns fieldRequired for unset manual amount when iouType is %s',
                 (iouType) => {
                     // Given a manual expense of this type to a person, with no amount entered
                     const {result} = renderHook(() =>
@@ -506,8 +506,8 @@ describe('useConfirmationValidation', () => {
                     );
 
                     // When the user confirms
-                    // Then the $0 guard for 1:1 expenses runs before the required check, so the amount reads as invalid rather than missing
-                    expect(result.current.validate()).toEqual({errorKey: 'common.error.invalidAmount', isFieldError: true});
+                    // Then the amount reads as missing, the same as for a workspace, so the summary above the button covers it too
+                    expect(result.current.validate()).toEqual({errorKey: 'common.error.fieldRequired', isFieldError: true});
                 },
             );
 
@@ -554,7 +554,7 @@ describe('useConfirmationValidation', () => {
                 const {result} = renderHook(() => useConfirmationValidation(createValidationParamsForParticipant(SELF_DM_PARTICIPANT, zeroAmountParams, {isAmountSet: false})));
 
                 // When the user confirms
-                // Then the amount reads as required, since the 1:1 $0 guard doesn't apply to a tracked expense
+                // Then the amount reads as required, like any manual expense whose amount was never entered
                 expect(result.current.validate()).toEqual({errorKey: 'common.error.fieldRequired', isFieldError: true});
             });
 
@@ -803,7 +803,7 @@ describe('useConfirmationValidation', () => {
             expect(result.current.validate()).toEqual({errorKey: 'common.error.invalidAmount', isFieldError: true});
         });
 
-        it('returns invalidAmount for split IOU type with unset manual amount and P2P participants', () => {
+        it('returns fieldRequired for split IOU type with unset manual amount and P2P participants', () => {
             // Given a split between people whose amount the user never entered
             const splitParticipants = [P2P_PARTICIPANT, {accountID: 3, isPolicyExpenseChat: false} as Participant];
             const {result} = renderHook(() =>
@@ -821,8 +821,8 @@ describe('useConfirmationValidation', () => {
             );
 
             // When the user confirms
-            // Then the amount reads as invalid, since the first participant is a person and the 1:1 $0 guard comes first
-            expect(result.current.validate()).toEqual({errorKey: 'common.error.invalidAmount', isFieldError: true});
+            // Then the amount reads as missing, since an amount the user never entered is checked before the 1:1 $0 guard
+            expect(result.current.validate()).toEqual({errorKey: 'common.error.fieldRequired', isFieldError: true});
         });
 
         it('returns fieldRequired for split IOU type with unset manual amount and a policy expense chat participant', () => {
@@ -841,7 +841,7 @@ describe('useConfirmationValidation', () => {
             );
 
             // When the user confirms
-            // Then the amount reads as required, since the 1:1 $0 guard doesn't apply to a workspace
+            // Then the amount reads as required, like any manual expense whose amount was never entered
             expect(result.current.validate()).toEqual({errorKey: 'common.error.fieldRequired', isFieldError: true});
         });
 

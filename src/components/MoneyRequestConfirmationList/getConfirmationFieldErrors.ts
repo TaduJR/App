@@ -70,15 +70,16 @@ function getAmountFieldError(transaction: OnyxEntry<OnyxTypes.Transaction>, para
     const firstParticipant = transaction?.participants?.at(0);
     const isP2P = isParticipantP2P(firstParticipant);
 
+    // Per diem, distance and time set the amount themselves, and a scan reads a blank amount off the receipt. This runs
+    // before the $0 check below, so an amount the user never entered reads as missing whoever the expense goes to.
+    if (isConfirmationAmountMissing(transaction, canEnterScanFieldsManually, isPolicyExpenseChat)) {
+        return 'common.error.fieldRequired';
+    }
+
     // A manual expense to a person can't be $0. Scan, time and distance expenses are exempt, since their amount is
     // normally read off the receipt or computed rather than typed.
     if (!isScanRequest(transaction) && !isTimeRequest && !isDistanceRequest && iouAmount === 0 && isP2P) {
         return 'common.error.invalidAmount';
-    }
-
-    // Per diem, distance and time set the amount themselves, and a scan reads a blank amount off the receipt.
-    if (isConfirmationAmountMissing(transaction, canEnterScanFieldsManually, isPolicyExpenseChat)) {
-        return 'common.error.fieldRequired';
     }
 
     // A Scan amount is optional behind "Show more", but one the user does type is checked like a manual one. The Scan

@@ -203,9 +203,20 @@ describe('getConfirmationFieldErrors', () => {
         expect(fieldErrors).toEqual({date: 'common.error.fieldRequired', merchant: 'common.error.fieldRequired'});
     });
 
+    it('reports an amount never entered on an expense to a person as required, not invalid', () => {
+        // Given a manual expense to a user whose amount field was left blank
+        const transaction = createManualTransaction({amount: 0, isAmountSet: false, participants: [P2P_PARTICIPANT]});
+
+        // When its field errors are computed
+        const fieldErrors = getConfirmationFieldErrors(transaction, {...baseParams, iouAmount: 0, isPolicyExpenseChat: false, isMerchantRequired: false});
+
+        // Then the amount reads as missing, so the required fields summary covers it the same as on a workspace expense
+        expect(fieldErrors).toEqual({amount: 'common.error.fieldRequired'});
+    });
+
     it('reports a zero amount to a person as invalid', () => {
-        // Given a manual expense to a user with a $0 amount
-        const transaction = createManualTransaction({amount: 0, participants: [P2P_PARTICIPANT]});
+        // Given a manual expense to a user where the user typed a $0 amount
+        const transaction = createManualTransaction({amount: 0, isAmountSet: true, participants: [P2P_PARTICIPANT]});
 
         // When its field errors are computed
         const fieldErrors = getConfirmationFieldErrors(transaction, {...baseParams, iouAmount: 0, isPolicyExpenseChat: false, isMerchantRequired: false});
