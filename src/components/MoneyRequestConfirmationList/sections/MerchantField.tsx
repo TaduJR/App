@@ -136,6 +136,7 @@ function MerchantField({isMerchantRequired, shouldDisplayFieldError, fieldError}
                     accessibilityLabel={translate('common.merchant')}
                     errorText={merchantErrorText}
                     rightHandSideComponent={shouldShowAutomaticHint ? <AutomaticFieldHint /> : undefined}
+                    sentryLabel={CONST.SENTRY_LABEL.REQUEST_CONFIRMATION_LIST.MERCHANT_FIELD}
                 />
             </View>
         );
