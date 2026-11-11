@@ -368,7 +368,8 @@ function IOURequestStepConfirmationContent({
         }
     }
 
-    const siblingTransactions = transactions.filter((item) => item.transactionID !== currentTransactionID);
+    // The pager keeps showing the previous transaction while the next one loads, so comparing against the current ID would leave the incoming receipt out of validation.
+    const siblingTransactions = transactions.filter((item) => item.transactionID !== transaction?.transactionID);
 
     const isFromGlobalCreate = transaction?.isFromGlobalCreate === true || transaction?.isFromFloatingActionButton === true;
 
