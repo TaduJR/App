@@ -493,7 +493,7 @@ describe('useConfirmationValidation', () => {
                     );
 
                     // When its field errors are computed
-                    // Then the amount reads as missing, the same as for a workspace, so the summary above the button covers it too
+                    // Then the amount reads as missing, the same as for a workspace
                     expect(result.current.fieldErrors).toEqual({amount: 'common.error.fieldRequired'});
                 },
             );

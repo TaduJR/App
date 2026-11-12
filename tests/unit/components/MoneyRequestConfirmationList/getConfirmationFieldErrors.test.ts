@@ -81,7 +81,7 @@ describe('getConfirmationFieldErrors', () => {
         // When its field errors are computed
         const fieldErrors = getConfirmationFieldErrors(transaction, {...baseParams, ...blankRequiredMerchantParams, iouAmount: 0});
 
-        // Then both fields read as required, so the summary above the button applies to each of them
+        // Then both fields read as required, so each of them is flagged under its own input
         expect(fieldErrors).toEqual({amount: 'common.error.fieldRequired', merchant: 'common.error.fieldRequired'});
     });
 

@@ -238,7 +238,6 @@ const translations: TranslationDeepObject<typeof en> = {
             phoneNumber: `Voer een volledig telefoonnummer in
 (bijv. ${CONST.FORMATTED_EXAMPLE_PHONE_NUMBER})`,
             fieldRequired: 'Dit veld is verplicht',
-            fixErrorsBeforeContinuing: 'Los de fouten in het formulier op voordat je verdergaat.',
             requestModified: 'Dit verzoek wordt bewerkt door een ander lid',
             characterLimitExceedCounter: (length: number, limit: number) => `Limiet voor aantal tekens overschreden (${length}/${limit})`,
             dateInvalid: 'Selecteer een geldige datum',
@@ -1764,7 +1763,6 @@ const translations: TranslationDeepObject<typeof en> = {
             atLeastTwoDifferentWaypoints: 'Voer minimaal twee verschillende adressen in',
             splitExpenseMultipleParticipantsErrorMessage: 'Een uitgave kan niet worden opgesplitst tussen een werkruimte en andere leden. Werk je selectie alsjeblieft bij.',
             invalidMerchant: 'Voer een geldige leverancier in',
-            enterRequiredFields: 'Vul alsjeblieft de verplichte velden in.',
             atLeastOneAttendee: 'Er moet ten minste één deelnemer worden geselecteerd',
             invalidQuantity: 'Voer een geldige hoeveelheid in',
             quantityGreaterThanZero: 'Hoeveelheid moet groter zijn dan nul',
