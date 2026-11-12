@@ -13,15 +13,17 @@ const noop = () => {};
  * Browsers already scroll a focused input into view, so on web only revealing a view that isn't focused needs work.
  * `containerRef` is still returned so the list can attach it harmlessly.
  */
-const useScrollToFocusedInput: UseScrollToFocusedInput = () => {
+const useScrollToFocusedInput: UseScrollToFocusedInput = (listRef) => {
     const containerRef = useRef<ComponentRef<typeof View> | null>(null);
 
-    // A view is its own element on web, so the browser can scroll the list to it without any measuring.
     const scrollToReveal = (view: MeasurableInput) => {
-        if (!(view instanceof HTMLElement)) {
+        const scroller = listRef.current?.getNativeScrollRef();
+        if (!(view instanceof HTMLElement) || !(scroller instanceof HTMLElement)) {
             return;
         }
-        view.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+        // An error renders at the bottom of its field, so a field taller than the visible list is aligned by its bottom.
+        const doesViewFit = view.getBoundingClientRect().height <= scroller.getBoundingClientRect().height;
+        view.scrollIntoView({block: doesViewFit ? 'nearest' : 'end', behavior: 'smooth'});
     };
 
     return {containerRef, trackScrollOffset: noop, scrollInputIntoView: noop, scrollToReveal};

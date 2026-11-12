@@ -1,6 +1,7 @@
 import {act, renderHook} from '@testing-library/react-native';
 
 import useScrollToFocusedInput from '@components/SelectionList/hooks/useScrollToFocusedInput/index.native';
+import type * as WebScrollToFocusedInputModule from '@components/SelectionList/hooks/useScrollToFocusedInput/index.ts';
 
 import type {FlashListRef} from '@shopify/flash-list';
 import type {ComponentRef} from 'react';
@@ -77,5 +78,33 @@ describe('useScrollToFocusedInput (native)', () => {
             // Then the list doesn't move, so a visible error never makes the form jump
             expect(scrollToOffset).not.toHaveBeenCalled();
         });
+    });
+});
+
+describe('useScrollToFocusedInput (web)', () => {
+    const useWebScrollToFocusedInput = jest.requireActual<typeof WebScrollToFocusedInputModule>('@components/SelectionList/hooks/useScrollToFocusedInput/index.ts').default;
+
+    function createElementOfHeight(height: number) {
+        const element = document.createElement('div');
+        const scrollIntoView = jest.fn();
+        jest.spyOn(element, 'getBoundingClientRect').mockReturnValue(createMock<DOMRect>({height}));
+        element.scrollIntoView = scrollIntoView;
+        return {element, scrollIntoView};
+    }
+
+    it.each([
+        ['the nearest edge of a field that fits in the list', 60, 'nearest'],
+        ['the bottom of a field taller than the list, where its error is', LIST_HEIGHT + 60, 'end'],
+    ])('scrolls to %s', (_case, fieldHeight, expectedBlock) => {
+        // Given a list and a field of this height inside it
+        const scroller = createElementOfHeight(LIST_HEIGHT).element;
+        const {result} = renderHook(() => useWebScrollToFocusedInput({current: {scrollToOffset: jest.fn(), getNativeScrollRef: jest.fn().mockReturnValue(scroller)}}, false));
+        const field = createElementOfHeight(fieldHeight);
+
+        // When the field is revealed
+        result.current.scrollToReveal(field.element);
+
+        // Then the browser brings that edge into view, since aligning a field taller than the list by its nearest edge can leave its error clipped
+        expect(field.scrollIntoView).toHaveBeenCalledWith({block: expectedBlock, behavior: 'smooth'});
     });
 });
