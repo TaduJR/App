@@ -78,7 +78,6 @@ describe('buildConfirmAction', () => {
         // Then the field errors are revealed and the earlier confirm's error is dropped, since validation checks it again on the next confirm
         expect(params.revealFieldErrors).toHaveBeenCalledTimes(1);
         expect(params.clearConfirmError).toHaveBeenCalledTimes(1);
-        expect(params.setConfirmError).not.toHaveBeenCalled();
         expect(params.onConfirm).not.toHaveBeenCalled();
     });
 

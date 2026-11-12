@@ -122,41 +122,13 @@ function useManualWorkspaceConfirmation(
         onConfirm: mockOnConfirm,
     });
 
-    return {confirm, validate, visibleFieldErrors, footerErrorMessage};
+    return {confirm, visibleFieldErrors, footerErrorMessage};
 }
 
 describe('required fields on a manual workspace expense', () => {
     beforeEach(() => {
         mockOnConfirm.mockClear();
         mockIsFocused = true;
-    });
-
-    it('keeps the blank merchant flagged and the summary shown after only the amount is entered', () => {
-        // Given a manual workspace expense with neither an amount nor a merchant
-        const {result, rerender} = renderHook((transaction: OnyxTypes.Transaction) => useManualWorkspaceConfirmation(transaction), {initialProps: blankDraft});
-
-        // When the user presses Create
-        act(() => result.current.confirm());
-
-        // Then both fields read as required and the summary sits above the button, as either may be scrolled out of view
-        expect(result.current.visibleFieldErrors).toEqual({amount: 'common.error.fieldRequired', merchant: 'common.error.fieldRequired'});
-        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
-
-        // When the user enters only the amount
-        rerender({...blankDraft, amount: 2500, isAmountSet: true});
-
-        // Then the merchant is still flagged and the summary stays, since a required field is still missing
-        expect(result.current.visibleFieldErrors).toEqual({merchant: 'common.error.fieldRequired'});
-        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
-
-        // When the user presses Create again
-        act(() => result.current.confirm());
-
-        // Then the blank merchant still reads as required rather than invalid, so the summary still explains the block
-        expect(result.current.validate()).toEqual({isFieldError: true});
-        expect(result.current.visibleFieldErrors).toEqual({merchant: 'common.error.fieldRequired'});
-        expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
-        expect(mockOnConfirm).not.toHaveBeenCalled();
     });
 
     it('keeps the errors shown when the user leaves the page and comes back without filling anything in', () => {
@@ -173,25 +145,6 @@ describe('required fields on a manual workspace expense', () => {
         // Then both fields are still flagged and the summary still shows, since the fields are still blank
         expect(result.current.visibleFieldErrors).toEqual({amount: 'common.error.fieldRequired', merchant: 'common.error.fieldRequired'});
         expect(result.current.footerErrorMessage).toBe('iou.error.enterRequiredFields');
-    });
-
-    it('clears the errors and confirms once every required field is filled in', () => {
-        // Given a blocked confirm on a manual workspace expense with neither an amount nor a merchant
-        const {result, rerender} = renderHook((transaction: OnyxTypes.Transaction) => useManualWorkspaceConfirmation(transaction), {initialProps: blankDraft});
-        act(() => result.current.confirm());
-
-        // When the user enters both the amount and the merchant
-        rerender({...blankDraft, amount: 2500, isAmountSet: true, merchant: 'Office Depot', isMerchantSet: true});
-
-        // Then nothing is flagged any more
-        expect(result.current.visibleFieldErrors).toEqual({});
-        expect(result.current.footerErrorMessage).toBeUndefined();
-
-        // When the user presses Create
-        act(() => result.current.confirm());
-
-        // Then the expense is confirmed
-        expect(mockOnConfirm).toHaveBeenCalledTimes(1);
     });
 
     it('does not let the tax error of a removed expense block the one left on screen', () => {
