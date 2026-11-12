@@ -121,11 +121,13 @@ const useScrollToFocusedInput: UseScrollToFocusedInput = (listRef, isKeyboardSho
             view.measureInWindow((viewX, viewY, viewWidth, viewHeight) => {
                 const visibleTop = scrollerY + EXTRA_SCROLL_PADDING;
                 const visibleBottom = scrollerY + scrollerHeight - EXTRA_SCROLL_PADDING;
-                if (viewY < visibleTop) {
+                // An error renders at the bottom of its field, so a field taller than the visible area is aligned by its bottom.
+                const doesViewFit = viewHeight <= visibleBottom - visibleTop;
+                if (viewY < visibleTop && doesViewFit) {
                     list.scrollToOffset({offset: scrollOffsetRef.current + viewY - visibleTop, animated: true});
                     return;
                 }
-                if (viewY + viewHeight > visibleBottom) {
+                if (viewY < visibleTop || viewY + viewHeight > visibleBottom) {
                     list.scrollToOffset({offset: scrollOffsetRef.current + viewY + viewHeight - visibleBottom, animated: true});
                 }
             });

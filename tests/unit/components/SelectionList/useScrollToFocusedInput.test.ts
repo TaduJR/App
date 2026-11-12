@@ -56,6 +56,17 @@ describe('useScrollToFocusedInput (native)', () => {
             expect(scrollToOffset).toHaveBeenCalledWith({offset: SCROLL_OFFSET + 560 + 60 - (LIST_TOP + LIST_HEIGHT - PADDING), animated: true});
         });
 
+        it('brings the bottom of a view taller than the list into view, so the error under the field is not clipped', () => {
+            // Given a field above the visible part of the list that is taller than it, as in landscape with the keyboard open
+            const {scrollToOffset, scrollToReveal} = renderScrolledList();
+
+            // When it is revealed
+            scrollToReveal(createViewAt(20, LIST_HEIGHT));
+
+            // Then the list scrolls up only until the field's bottom, where its error is, sits the padding above the bottom of the list
+            expect(scrollToOffset).toHaveBeenCalledWith({offset: SCROLL_OFFSET + 20 + LIST_HEIGHT - (LIST_TOP + LIST_HEIGHT - PADDING), animated: true});
+        });
+
         it('leaves the list where it is when the view is already in sight', () => {
             // Given a field that is already in the visible part of the list
             const {scrollToOffset, scrollToReveal} = renderScrolledList();
