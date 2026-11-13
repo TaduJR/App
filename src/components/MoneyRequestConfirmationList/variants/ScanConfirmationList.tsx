@@ -12,6 +12,8 @@ import useIsInLandscapeMode from '@hooks/useIsInLandscapeMode';
 
 import {hasAnyManuallyEnteredScanField} from '@libs/TransactionUtils';
 
+import type {TranslationPaths} from '@src/languages/types';
+
 import React, {useState} from 'react';
 
 /**
@@ -45,9 +47,13 @@ function ScanConfirmationList(props: MoneyRequestConfirmationListProps) {
     // The fields expand during render when they hold a value or an error, so the expense never paints collapsed, even after a remount, and Create never looks like it did nothing.
     const hasManuallyEnteredFields = canEnterScanFieldsManually && hasAnyManuallyEnteredScanField(transaction);
     const {formError, fieldErrors} = data.footerProps.errorState;
-    // The attendees and tax amount fields sit behind "Show more", so without this their errors would show nowhere.
-    const hasErrorOnCollapsedField = isErrorShownOnItsOwnField(formError);
-    if (transactionID && !showMoreFields && (hasManuallyEnteredFields || hasFieldErrors(fieldErrors) || hasErrorOnCollapsedField)) {
+    // The attendees and tax amount fields sit behind "Show more". Every receipt shares one form error, so it opens only the receipt on screen when it is raised.
+    const [lastFormError, setLastFormError] = useState<TranslationPaths | ''>('');
+    const isNewErrorOnCollapsedField = formError !== lastFormError && isErrorShownOnItsOwnField(formError);
+    if (formError !== lastFormError) {
+        setLastFormError(formError);
+    }
+    if (transactionID && !showMoreFields && (hasManuallyEnteredFields || hasFieldErrors(fieldErrors) || isNewErrorOnCollapsedField)) {
         setRevealedTransactionIDs([...revealedTransactionIDs, transactionID]);
     }
 
