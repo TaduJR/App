@@ -1,5 +1,5 @@
 import type {ConfirmationFieldErrors, SiblingFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
-import getConfirmationFieldErrors, {getSiblingFieldErrors, NO_FIELD_ERRORS} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
+import getConfirmationFieldErrors, {getSiblingFieldErrors, hasFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
 
@@ -198,7 +198,7 @@ function useConfirmationValidation({
         currentUserAccountID: currentUserPersonalDetails.accountID,
     };
     const fieldErrors = getConfirmationFieldErrors(transaction, {...fieldErrorParams, iouAmount, iouMerchant});
-    const siblingFieldErrors = fieldErrors === NO_FIELD_ERRORS ? getSiblingFieldErrors(siblingTransactions, {...fieldErrorParams, participants: transaction?.participants}) : undefined;
+    const siblingFieldErrors = !hasFieldErrors(fieldErrors) ? getSiblingFieldErrors(siblingTransactions, {...fieldErrorParams, participants: transaction?.participants}) : undefined;
     const validateReceiptOnScreen = (paymentType?: PaymentMethodType): ValidationResult | null => {
         if (!!routeError || !transactionID) {
             return null;
@@ -208,7 +208,7 @@ function useConfirmationValidation({
             return {errorKey: 'iou.error.noParticipantSelected'};
         }
 
-        if (fieldErrors !== NO_FIELD_ERRORS) {
+        if (hasFieldErrors(fieldErrors)) {
             return {isFieldError: true};
         }
 

@@ -1,6 +1,8 @@
 import ConfirmationListLayout from '@components/MoneyRequestConfirmationList/ConfirmationListLayout';
 import FieldAutoSelector from '@components/MoneyRequestConfirmationList/FieldAutoSelector';
+import {hasFieldErrors} from '@components/MoneyRequestConfirmationList/getConfirmationFieldErrors';
 import useConfirmationListData from '@components/MoneyRequestConfirmationList/hooks/useConfirmationListData';
+import {isErrorShownOnItsOwnField} from '@components/MoneyRequestConfirmationList/hooks/useFormErrorManagement';
 import SplitBillController from '@components/MoneyRequestConfirmationList/SplitBillController';
 import TaxController from '@components/MoneyRequestConfirmationList/TaxController';
 import type {MoneyRequestConfirmationListProps} from '@components/MoneyRequestConfirmationList/types';
@@ -42,8 +44,10 @@ function ScanConfirmationList(props: MoneyRequestConfirmationListProps) {
 
     // The fields expand during render when they hold a value or an error, so the expense never paints collapsed, even after a remount, and Create never looks like it did nothing.
     const hasManuallyEnteredFields = canEnterScanFieldsManually && hasAnyManuallyEnteredScanField(transaction);
-    const hasInlineFieldError = Object.keys(data.footerProps.errorState.fieldErrors).length > 0;
-    if (transactionID && !showMoreFields && (hasManuallyEnteredFields || hasInlineFieldError)) {
+    const {formError, fieldErrors} = data.footerProps.errorState;
+    // The attendees and tax amount fields sit behind "Show more", so without this their errors would show nowhere.
+    const hasErrorOnCollapsedField = isErrorShownOnItsOwnField(formError);
+    if (transactionID && !showMoreFields && (hasManuallyEnteredFields || hasFieldErrors(fieldErrors) || hasErrorOnCollapsedField)) {
         setRevealedTransactionIDs([...revealedTransactionIDs, transactionID]);
     }
 

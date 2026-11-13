@@ -7,6 +7,8 @@ import {useRef} from 'react';
 
 import type {UseScrollToFocusedInput} from './types';
 
+import getScrollDeltaToReveal from './getScrollDeltaToReveal';
+
 const noop = () => {};
 
 /**
@@ -17,13 +19,19 @@ const useScrollToFocusedInput: UseScrollToFocusedInput = (listRef) => {
     const containerRef = useRef<ComponentRef<typeof View> | null>(null);
 
     const scrollToReveal = (view: MeasurableInput) => {
-        const scroller = listRef.current?.getNativeScrollRef();
-        if (!(view instanceof HTMLElement) || !(scroller instanceof HTMLElement)) {
+        const list = listRef.current;
+        // `scrollIntoView` can't keep a gap from the list's edges, so the list scrolls by the same amount native does.
+        const scroller = list?.getNativeScrollRef();
+        if (!list || !(view instanceof HTMLElement) || !(scroller instanceof HTMLElement)) {
             return;
         }
-        // An error renders at the bottom of its field, so a field taller than the visible list is aligned by its bottom.
-        const doesViewFit = view.getBoundingClientRect().height <= scroller.getBoundingClientRect().height;
-        view.scrollIntoView({block: doesViewFit ? 'nearest' : 'end', behavior: 'smooth'});
+        const viewRect = view.getBoundingClientRect();
+        const scrollerRect = scroller.getBoundingClientRect();
+        const delta = getScrollDeltaToReveal({top: viewRect.top, height: viewRect.height}, {top: scrollerRect.top, height: scrollerRect.height});
+        if (delta === 0) {
+            return;
+        }
+        list.scrollToOffset({offset: scroller.scrollTop + delta, animated: true});
     };
 
     return {containerRef, trackScrollOffset: noop, scrollInputIntoView: noop, scrollToReveal};

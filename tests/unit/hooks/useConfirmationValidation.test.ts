@@ -1191,7 +1191,7 @@ describe('useConfirmationValidation', () => {
             const {result, rerender} = renderHook((props: UseConfirmationValidationParams) => useConfirmationValidation(props), {initialProps: params});
 
             // When the user confirms from the receipt on screen
-            // Then its missing attendees block first, so pressing Create on the other receipt later can't submit this one without them
+            // Then its missing attendees block first, so this receipt is fixed before Create moves on to the other one
             expect(result.current.validate()).toEqual({errorKey: 'violations.missingAttendees'});
 
             // When an attendee is added and the user confirms again
