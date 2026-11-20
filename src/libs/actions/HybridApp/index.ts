@@ -147,4 +147,22 @@ function resetSignInFlow() {
     });
 }
 
-export {getHybridAppSettings, setReadyToShowAuthScreens, resetSignInFlow, setUseNewDotSignInPage, closeReactNativeApp};
+function signOutFromOldDot() {
+    // OldDot only exists in HybridApp, so there is nothing to sign out in other environments.
+    if (!CONFIG.IS_HYBRID_APP) {
+        return;
+    }
+
+    HybridAppModule.signOutFromOldDot();
+}
+
+/*
+ * Signs OldDot out and restarts the HybridApp sign-in flow. Call it only after Onyx has been cleared, because a later clear would wipe the reset.
+ */
+function signOutFromOldDotAndRestartSignIn() {
+    const resetPromise = resetSignInFlow();
+    signOutFromOldDot();
+    return resetPromise;
+}
+
+export {getHybridAppSettings, setReadyToShowAuthScreens, resetSignInFlow, setUseNewDotSignInPage, closeReactNativeApp, signOutFromOldDot, signOutFromOldDotAndRestartSignIn};

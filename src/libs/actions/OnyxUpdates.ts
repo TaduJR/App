@@ -3,6 +3,7 @@ import Log from '@libs/Log';
 import PusherUtils from '@libs/PusherUtils';
 import {trackExpenseApiError} from '@libs/telemetry/trackExpenseCreationError';
 
+import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {AnyOnyxUpdatesFromServer, OnyxUpdateEvent, OnyxUpdatesFromServer, Request} from '@src/types/onyx';
@@ -14,6 +15,7 @@ import type {Merge} from 'type-fest';
 
 import Onyx from 'react-native-onyx';
 
+import {signOutFromOldDot, signOutFromOldDotAndRestartSignIn} from './HybridApp';
 import {getCurrentFlushPromise, isEmpty as isQueuedOnyxUpdatesEmpty, queueOnyxUpdates} from './QueuedOnyxUpdates';
 
 // This key needs to be separate from ONYXKEYS.ONYX_UPDATES_FROM_SERVER so that it can be updated without triggering the callback when the server IDs are updated. If that
@@ -62,6 +64,32 @@ let pusherEventsPromise = Promise.resolve();
 
 let airshipEventsPromise = Promise.resolve();
 
+function hasServerClear(updates: Array<{onyxMethod: string}> | undefined): boolean {
+    return CONFIG.IS_HYBRID_APP && !!updates?.some((update) => update.onyxMethod === Onyx.METHOD.CLEAR);
+}
+
+/**
+ * A clear from the server ends the session, so on HybridApp the sign-in flow restarts and OldDot signs out, the same as after a client sign-out.
+ * The restart waits for the whole batch, because a batch whose clear failed still holds the old session, and restarting the flow would sign OldDot back in with it.
+ * OldDot signs out once the batch settles either way, because the server has already ended the session.
+ */
+function finishSignOutAfterServerClear(batchPromise: Promise<unknown>, source: string) {
+    batchPromise
+        .then(
+            () => {
+                Log.info('[HybridApp] The server cleared Onyx. Restarting the sign-in flow and performing sign-out on OldDot side', false, {source});
+                return signOutFromOldDotAndRestartSignIn();
+            },
+            () => {
+                Log.info('[HybridApp] The server cleared Onyx, but its batch failed to apply. Performing sign-out on OldDot side only', false, {source});
+                signOutFromOldDot();
+            },
+        )
+        .catch((error: unknown) => {
+            Log.alert('[HybridApp] Signing out after the server cleared Onyx failed', {source, error: error instanceof Error ? error.message : String(error)});
+        });
+}
+
 function applyHTTPSOnyxUpdates<TKey extends OnyxKey>(
     request: Request<TKey>,
     response: Response<TKey>,
@@ -77,6 +105,11 @@ function applyHTTPSOnyxUpdates<TKey extends OnyxKey>(
     // apply successData or failureData. This ensures that we do not update any pending, loading, or other UI states contained
     // in successData/failureData until after the component has received and API data.
     const onyxDataUpdatePromise = response.onyxData ? updateHandler(response.onyxData) : Promise.resolve();
+
+    if (hasServerClear(response.onyxData)) {
+        // Queued updates land only when the SequentialQueue flushes, and that flush waits for this request, so returning the flush promise would deadlock.
+        finishSignOutAfterServerClear(shouldQueueUpdates ? getCurrentFlushPromise() : onyxDataUpdatePromise, request.command);
+    }
 
     return onyxDataUpdatePromise
         .then(() => {
@@ -137,6 +170,10 @@ function applyPusherOnyxUpdates<TKey extends OnyxKey>(updates: Array<OnyxUpdateE
 
     pusherEventsPromise = applyPromise.catch(() => {});
 
+    if (updates.some((update) => hasServerClear(update.data))) {
+        finishSignOutAfterServerClear(applyPromise, CONST.ONYX_UPDATE_TYPES.PUSHER);
+    }
+
     return applyPromise;
 }
 
@@ -152,6 +189,10 @@ function applyAirshipOnyxUpdates<TKey extends OnyxKey>(updates: Array<OnyxUpdate
         });
 
     airshipEventsPromise = applyPromise.catch(() => {});
+
+    if (updates.some((update) => hasServerClear(update.data))) {
+        finishSignOutAfterServerClear(applyPromise, CONST.ONYX_UPDATE_TYPES.AIRSHIP);
+    }
 
     return applyPromise;
 }
