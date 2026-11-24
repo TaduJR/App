@@ -15,13 +15,13 @@ type MoneyRequestConfirmationListItem = (Participant & {keyForList: string}) | O
 
 type MoneyRequestConfirmationListProps = {
     /** Runs validation and submits. */
-    onConfirm?: () => void;
+    onConfirm?: () => void | Promise<void>;
 
     /** Opens the participant picker owned by the page. */
     onOpenParticipantPicker: () => void;
 
     /** The payment method the SettlementButton chose. */
-    onSendMoney?: (paymentMethod: PaymentMethodType | undefined) => void;
+    onSendMoney?: (paymentMethod: PaymentMethodType | undefined) => Promise<void>;
 
     /** The IOU flow being confirmed. */
     iouType: Exclude<IOUType, typeof CONST.IOU.TYPE.REQUEST | typeof CONST.IOU.TYPE.SEND>;
